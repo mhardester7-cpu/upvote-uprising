@@ -2,6 +2,8 @@
 
 **Upvote Uprising** is a browser game shaped by suggestions from a Reddit community series. Each community addition is recorded in [COMMUNITY_CHANGES.md](COMMUNITY_CHANGES.md).
 
+[Play the live game](https://deadfall.up.railway.app/). Suggestions and pull requests are welcome; see [Contributing](#contributing).
+
 A co-op wave-survival first-person shooter that runs in the browser. No build
 step, no bundler, no framework: hand-written ES modules, Three.js from `vendor/`,
 and a Node server that hosts both the static files and the multiplayer.
