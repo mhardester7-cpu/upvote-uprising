@@ -1,0 +1,128 @@
+<!doctype html>
+<!-- Runtime QA for the exact animated dinosaur and skin used by the factory. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UPVOTE UPRISING — dinosaur QA</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #151b18; }
+  canvas { display: block; }
+  #status {
+    position: fixed; inset: 16px 16px auto 16px; padding: 12px 15px;
+    color: #e8fff0; background: rgba(4, 12, 7, 0.82); border: 1px solid #54e68a;
+    font: 13px/1.55 ui-monospace, SFMono-Regular, monospace; letter-spacing: 0.04em;
+  }
+  #status strong { color: #67f59b; }
+  #error { color: #ff8f8f; }
+</style>
+</head>
+<body>
+<div id="status" data-loaded="false" data-textured-meshes="0" data-facing-dot="0">
+  <strong>DINOSAUR RUNTIME QA</strong><br>Loading the shipped FBX and reptile skin…
+</div>
+<script type="importmap">
+{ "imports": { "three": "../vendor/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from '../vendor/three.module.js';
+import {
+  DinosaurAlly,
+  dinosaurRenderedForward,
+  loadDinosaurAsset,
+} from '../src/entities/dinosaurfactory.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x26372d);
+scene.fog = new THREE.Fog(0x26372d, 9, 24);
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 50);
+camera.position.set(4.4, 2.35, 5.2);
+camera.lookAt(0, 0.9, 0);
+
+scene.add(new THREE.HemisphereLight(0xd8f4e1, 0x554635, 1.7));
+const key = new THREE.DirectionalLight(0xfff0d2, 3.1);
+key.position.set(4, 7, 5); key.castShadow = true; scene.add(key);
+const rim = new THREE.DirectionalLight(0x7bb7ff, 1.8);
+rim.position.set(-5, 3, -4); scene.add(rim);
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(5, 64),
+  new THREE.MeshStandardMaterial({ color: 0x303a32, roughness: 0.95 }),
+);
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1),
+  new THREE.Vector3(0, 0.04, 0), 2.5, 0x5dff91, 0.38, 0.22);
+scene.add(arrow);
+
+const world = {
+  heightAt: () => 0,
+  supportHeight: () => 0,
+  inBounds: () => true,
+  blocksAt: () => false,
+  raycast: () => ({ hit: false, distance: Infinity }),
+};
+const status = document.getElementById('status');
+let ally = null;
+
+try {
+  const asset = await loadDinosaurAsset();
+  ally = new DinosaurAlly(world, asset);
+  ally.hatch(0, 0, 0, 0);
+  ally._play('run', 0);
+  scene.add(ally.mesh);
+  const forward = dinosaurRenderedForward(ally.mesh.rotation.y);
+  const facingDot = forward.z;
+  const textured = ally.visual.userData.texturedMeshCount ?? 0;
+  let mappedMaterials = 0;
+  ally.visual.traverse((object) => {
+    if (!object.isMesh) return;
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    mappedMaterials += materials.filter((material) => material?.userData?.dinosaurSkin
+      && material.map === asset.skinTexture).length;
+  });
+  status.dataset.loaded = String(ally.usesLoadedModel);
+  status.dataset.texturedMeshes = String(textured);
+  status.dataset.mappedMaterials = String(mappedMaterials);
+  status.dataset.facingDot = facingDot.toFixed(3);
+  const passed = ally.usesLoadedModel && mappedMaterials > 0 && facingDot > 0.99;
+  status.innerHTML = `<strong>DINOSAUR RUNTIME QA — ${passed ? 'PASS' : 'FAILED'}</strong><br>
+    Shipped animated FBX: ${ally.usesLoadedModel ? 'loaded' : 'FAILED'}<br>
+    Real reptile-skin materials: ${mappedMaterials}<br>
+    Nose · movement direction: ${facingDot.toFixed(3)} (1.000 is forward)<br>
+    Green arrow: movement direction (+Z)`;
+} catch (error) {
+  status.id = 'error';
+  status.textContent = `DINOSAUR RUNTIME QA — FAILED: ${error.message}`;
+  console.error(error);
+}
+
+let age = 0;
+function frame() {
+  requestAnimationFrame(frame);
+  const dt = 1 / 60;
+  age += dt;
+  ally?.mixer?.update(dt);
+  // Slow camera orbit keeps the arrow fixed and shows that the skin is present
+  // on the complete animal, not merely on the side facing one screenshot.
+  camera.position.set(Math.sin(age * 0.22) * 5.8, 2.35, Math.cos(age * 0.22) * 5.8);
+  camera.lookAt(0, 0.9, 0);
+  renderer.render(scene, camera);
+}
+frame();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

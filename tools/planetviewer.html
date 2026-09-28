@@ -1,0 +1,69 @@
+<!doctype html>
+<!-- Runtime QA for the full-surface John Pork planet texture. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UPVOTE UPRISING — John Pork planet QA</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #02050b; }
+  canvas { display: block; }
+  #status {
+    position: fixed; inset: 16px auto auto 16px; padding: 10px 13px;
+    color: #f6ddda; background: rgba(8, 5, 9, 0.78); border: 1px solid #d79b98;
+    font: 13px/1.5 ui-monospace, SFMono-Regular, monospace;
+  }
+</style>
+</head>
+<body>
+<div id="status" data-loaded="false">JOHN PORK PLANET — loading full surface…</div>
+<script type="module">
+import * as THREE from '../vendor/three.module.js';
+import { JOHN_PORK_TEXTURE, PLANETS, makePlanet } from '../src/game/interplanetary.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x02050b);
+const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 500);
+camera.position.set(78, 2, 0);
+camera.lookAt(0, 0, 0);
+
+scene.add(new THREE.HemisphereLight(0xd9d4df, 0x14101a, 0.72));
+const key = new THREE.DirectionalLight(0xffe3d8, 2.8);
+key.position.set(65, 28, 24); scene.add(key);
+const rim = new THREE.DirectionalLight(0x789cff, 1.2);
+rim.position.set(-35, 12, -28); scene.add(rim);
+
+const planet = makePlanet(PLANETS.cinder, 31, new THREE.Vector3(1, 0, 0));
+scene.add(planet);
+window.planetQA = planet;
+const status = document.getElementById('status');
+
+let then = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - then) / 1000); then = now;
+  planet.userData.clouds.rotation.y += dt * 0.018;
+  const surface = planet.userData.body.material.map;
+  if (surface?.image?.width && status.dataset.loaded !== 'true') {
+    status.dataset.loaded = 'true';
+    status.textContent = `JOHN PORK PLANET — PASS · full 2:1 spherical surface · ${JOHN_PORK_TEXTURE}`;
+  }
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

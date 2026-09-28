@@ -1,0 +1,276 @@
+<!doctype html>
+<!--
+  Model viewer.
+
+  A turntable for every character and prop in the game, on a neutral backdrop
+  with the same lighting rig and post chain the game uses. Judging a model
+  inside a firefight is guesswork; this is where silhouettes actually get
+  looked at.
+
+  Not part of the build. Open /tools/modelviewer.html on the dev server.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UPVOTE UPRISING — models</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #10151a; overflow: hidden; }
+  canvas { display: block; }
+  #bar {
+    position: fixed; top: 0; left: 0; right: 0; padding: 8px 12px;
+    font: 12px ui-monospace, monospace; color: #cfd8dd;
+    background: rgba(0,0,0,0.55); letter-spacing: 2px;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  }
+  button {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+    color: #e8f0f2; font: inherit; padding: 5px 10px; border-radius: 4px; cursor: pointer;
+  }
+  button:hover, button.on { background: #4db6ff; color: #06121c; border-color: #4db6ff; }
+  #label { margin-left: auto; color: #ffd24a; }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<!-- The vendored post-processing passes import a bare "three" specifier. -->
+<script type="importmap">
+{ "imports": { "three": "../vendor/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from '../vendor/three.module.js';
+import { EffectComposer } from '../vendor/postprocessing/EffectComposer.js';
+import { RenderPass } from '../vendor/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from '../vendor/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from '../vendor/postprocessing/OutputPass.js';
+
+import { ENEMY_TYPES } from '../src/entities/enemy.js';
+import { buildEnemyMesh, syncEnemyMesh } from '../src/render/enemymesh.js';
+import {
+  buildRemotePlayerMesh, syncRemotePlayerMesh, preloadRemotePlayerModel,
+} from '../src/render/remoteplayer.js';
+import { loadModelFile } from '../src/render/loadmodel.js';
+import { SpinningCat, SPINNING_CAT_MODEL } from '../src/entities/spinningcat.js';
+import { prepareRealisticSnail, SNAIL_ASSET } from '../src/game/interplanetary.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1b2732);
+
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 100);
+camera.rotation.order = 'YXZ';
+
+// Same rig as the game, so what is judged here is what ships.
+const sunDir = new THREE.Vector3(0.42, 0.78, 0.28).normalize();
+scene.add(new THREE.HemisphereLight(0xa8d8ff, 0x7d6a44, 1.05));
+const sun = new THREE.DirectionalLight(0xfff0cf, 2.0);
+sun.position.copy(sunDir).multiplyScalar(20);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 8, bottom: -2, near: 0.1, far: 60 });
+scene.add(sun, sun.target);
+const fill = new THREE.DirectionalLight(0x86b6ff, 0.5);
+fill.position.set(-0.6, 0.45, -0.7).multiplyScalar(20);
+scene.add(fill);
+
+// Neutral turntable, so nothing floats.
+const disc = new THREE.Mesh(
+  new THREE.CylinderGeometry(3.2, 3.2, 0.12, 48),
+  new THREE.MeshStandardMaterial({ color: 0x2a3641, roughness: 0.9 }));
+disc.position.y = -0.06;
+disc.receiveShadow = true;
+scene.add(disc);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.30, 0.60, 0.90));
+composer.addPass(new OutputPass());
+
+let current = null;
+let fake = null;
+let kind = null;
+let currentCleanup = null;
+
+function clear() {
+  if (current) { scene.remove(current); current = null; }
+  currentCleanup?.();
+  currentCleanup = null;
+}
+
+function frameTo(height) {
+  // Pull back far enough that the whole model fits with a little air.
+  const dist = height * 1.9 + 1.2;
+  camera.position.set(0, height * 0.55, dist);
+  camera.lookAt(0, height * 0.5, 0);
+}
+
+function showEnemy(id) {
+  clear();
+  kind = 'enemy';
+  const t = ENEMY_TYPES[id];
+  current = buildEnemyMesh(id);
+  scene.add(current);
+  fake = {
+    type: t, group: current, pos: { x: 0, y: 0, z: 0 }, yaw: 0,
+    walkPhase: 0, attackTimer: 0, aimTimer: 0, deathTimer: 0,
+    hitFlash: 0, alive: true, health: t.health, maxHealth: t.health,
+    fuse: -1, enraged: false,
+  };
+  frameTo(t.height);
+  label.textContent = `${t.label}  ${t.height}m`;
+}
+
+let playerState = 'walk';
+
+async function showPlayer() {
+  label.textContent = 'LOADING CO-OP PARTNER...';
+  await preloadRemotePlayerModel();
+  clear();
+  kind = 'player';
+  fake = {
+    id: 1, name: 'PLAYER', pos: { x: 0, y: 0, z: 0 }, yaw: 0, pitch: 0,
+    health: 100, alive: true, down: false, moving: true, walkPhase: 0, group: null,
+  };
+  current = buildRemotePlayerMesh(fake);
+  fake.group = current;
+  scene.add(current);
+  setPlayerState(playerState);
+  syncRemotePlayerMesh(fake, camera);
+  frameTo(1.8);
+  label.textContent = 'CO-OP PARTNER  1.8m';
+}
+
+function modelSize(model) {
+  model.updateMatrixWorld(true);
+  return new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+}
+
+async function showCat() {
+  label.textContent = 'LOADING REALISTIC ANIMATED CAT...';
+  const asset = await loadModelFile(new URL(`../${SPINNING_CAT_MODEL}`, import.meta.url).href);
+  clear();
+  kind = 'cat';
+  const instance = new SpinningCat({ x: 0, y: 0, z: 0, yaw: 0, roomId: 0 }, asset);
+  currentCleanup = () => instance.dispose();
+  current = instance.model;
+  current.visible = true;
+  current.scale.setScalar(1);
+  scene.add(current);
+  const size = modelSize(current);
+  frameTo(Math.max(size.x, size.y, size.z));
+  label.textContent = `MAGGIE  ${size.y.toFixed(2)}m tall  SKINNED WALK CYCLE`;
+}
+
+async function showSnail() {
+  label.textContent = 'LOADING REALISTIC SNAIL...';
+  const asset = await loadModelFile(new URL(`../${SNAIL_ASSET}`, import.meta.url).href);
+  clear();
+  kind = 'snail';
+  current = prepareRealisticSnail(asset.scene);
+  scene.add(current);
+  const size = modelSize(current);
+  frameTo(Math.max(size.x, size.y, size.z));
+  label.textContent = `INEVITABLE SNAIL  ${Math.max(size.x, size.z).toFixed(2)}m long  AUTHORED PBR`;
+}
+
+function setPlayerState(state) {
+  playerState = state;
+  if (!fake || kind !== 'player') return;
+  fake.moving = state === 'walk';
+  fake.down = state === 'down';
+  fake.pitch = state === 'aim' ? 0.34 : 0;
+}
+
+const bar = document.getElementById('bar');
+const label = document.createElement('div');
+label.id = 'label';
+
+const buttons = [];
+function addButton(text, fn) {
+  const b = document.createElement('button');
+  b.textContent = text;
+  b.onclick = () => {
+    buttons.forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    fn();
+  };
+  bar.appendChild(b);
+  buttons.push(b);
+  return b;
+}
+
+for (const id of Object.keys(ENEMY_TYPES)) addButton(id.toUpperCase(), () => showEnemy(id));
+addButton('PARTNER', showPlayer);
+addButton('CAT', showCat);
+addButton('SNAIL', showSnail);
+
+const stateButtons = [];
+function addStateButton(state) {
+  const b = document.createElement('button');
+  b.textContent = `PLAYER ${state.toUpperCase()}`;
+  b.dataset.playerState = state;
+  b.onclick = async () => {
+    if (kind !== 'player') await showPlayer();
+    setPlayerState(state);
+    stateButtons.forEach((x) => x.classList.toggle('on', x === b));
+  };
+  bar.appendChild(b);
+  stateButtons.push(b);
+}
+for (const state of ['idle', 'walk', 'aim', 'down']) addStateButton(state);
+bar.appendChild(label);
+
+let spin = true;
+addButton('SPIN', () => { spin = !spin; });
+
+let t = 0;
+function frame() {
+  requestAnimationFrame(frame);
+  t += 0.016;
+  if (current) {
+    if (spin) current.rotation.y = t * 0.55;
+    if (kind === 'enemy') {
+      fake.walkPhase = t * 3.2;
+      const y = current.rotation.y;
+      syncEnemyMesh(fake, 1);
+      current.rotation.y = y;      // sync writes yaw; keep the turntable spin
+      current.position.set(0, 0, 0);
+    } else if (kind === 'player') {
+      fake.walkPhase = t * 4;
+      const y = current.rotation.y;
+      syncRemotePlayerMesh(fake, camera);
+      current.rotation.y = y;
+      current.position.set(0, 0, 0);
+    }
+  }
+  composer.render();
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+
+// Expose for the screenshot harness.
+window.__THREE = THREE;
+Object.defineProperty(window, '__current', { get: () => current });
+window.viewer = { showEnemy, showPlayer, showCat, showSnail, setPlayerState,
+                  setSpin: (v) => { spin = v; },
+                  setYaw: (y) => { if (current) current.rotation.y = y; } };
+
+showEnemy('grunt');
+buttons[0].classList.add('on');
+frame();
+</script>
+</body>
+</html>

@@ -1,0 +1,753 @@
+[
+  {
+    "section": "attachments",
+    "title": "Soviet Special Sniper Rifle — PSO optic",
+    "author": "GGBotNet",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/vss-vintorez-3d",
+    "path": "assets/weapons/optic_vss_pso/Soviet_Special_Sniper_Rifle.fbx",
+    "modified": "scope and mount geometry isolated for the rifle and sniper viewmodels"
+  },
+  {
+    "section": "audio",
+    "title": "Mechanical Explosion",
+    "author": "Spring Spring",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/mechanical-explosion",
+    "path": "assets/audio/mechanical_explosion.wav"
+  },
+  {
+    "section": "audio",
+    "title": "Flamethrower",
+    "author": "SamsterBirdies",
+    "license": "CC0",
+    "page": "https://freesound.org/people/SamsterBirdies/sounds/490166/",
+    "path": "assets/audio/flamethrower_cc0.mp3",
+    "modified": "Pixabay MP3 transcode; steady-burn loop points selected at matching zero crossings while preserving the recorded ignition"
+  },
+  {
+    "section": "audio",
+    "title": "Impact",
+    "author": "Iwan 'qubodup' Gabovitch",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/impact",
+    "path": "assets/audio/impacts",
+    "modified": "descriptive filenames shortened; original Ogg recordings otherwise unchanged"
+  },
+  {
+    "section": "audio",
+    "title": "Insistent: background loop",
+    "author": "yd",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/insistent-background-loop",
+    "path": "assets/audio/insistent.ogg"
+  },
+  {
+    "section": "audio",
+    "title": "Lost in a bad place (horror ambience loop)",
+    "author": "congusbongus",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop",
+    "path": "assets/audio/lost_in_a_bad_place.ogg"
+  },
+  {
+    "section": "audio",
+    "title": "masculine moan, groan",
+    "author": "Elijahbaby",
+    "license": "CC0",
+    "page": "https://freesound.org/people/Elijahbaby/sounds/692788/",
+    "path": "assets/audio/button_male_moan.mp3",
+    "modified": "trimmed to one reaction, converted to mono, faded, and loudness-normalized for the red button"
+  },
+  {
+    "section": "audio",
+    "title": "The Free Firearm Sound Library",
+    "author": "Ben Jaszczak, Brian Nelson, Kevin Heras, and Matthew Nanney",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/the-free-firearm-sound-library",
+    "path": "assets/audio/gunshots",
+    "modified": "individual real firearm reports isolated, converted to mono MP3, peak-limited, and faded for browser playback"
+  },
+  {
+    "section": "audio",
+    "title": "Zombies' March",
+    "author": "yd",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/zombies-march",
+    "path": "assets/audio/zombies_are_coming.ogg"
+  },
+  {
+    "section": "characters",
+    "title": "Blue soldier (female)",
+    "author": "quaternius",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/animated-characters-pack",
+    "path": "assets/characters/char_soldier_f/BlueSoldier_Female.fbx"
+  },
+  {
+    "section": "characters",
+    "title": "Darsh, undead creature",
+    "author": "Eldritch Grim",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/darsh-undead-creature",
+    "path": "assets/characters/char_darsh/Darsh.glb"
+  },
+  {
+    "section": "characters",
+    "title": "Male City Zombie",
+    "author": "Rikindle3D",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/male-city-zombie-ready-for-use-in-game-engines",
+    "path": "assets/characters/char_city_zombie/InfectedCityMan.fbx"
+  },
+  {
+    "section": "characters",
+    "title": "Skeleton",
+    "author": "quaternius",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/lowpoly-animated-monsters",
+    "path": "assets/characters/char_skeleton/Skeleton.fbx"
+  },
+  {
+    "section": "characters",
+    "title": "Soldier (male)",
+    "author": "quaternius",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/animated-characters-pack",
+    "path": "assets/characters/char_soldier_m/Soldier_Male.fbx"
+  },
+  {
+    "section": "characters",
+    "title": "Zombie (female)",
+    "author": "quaternius",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/animated-characters-pack",
+    "path": "assets/characters/char_zombie_f/Zombie_Female.fbx"
+  },
+  {
+    "section": "characters",
+    "title": "Zombie (male)",
+    "author": "quaternius",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/animated-characters-pack",
+    "path": "assets/characters/char_zombie_m/Zombie_Male.fbx"
+  },
+  {
+    "section": "creatures",
+    "title": "Animated Dinosaur Pack — Velociraptor",
+    "author": "Quaternius",
+    "license": "CC0",
+    "page": "https://quaternius.com/packs/animateddinosaurs.html",
+    "path": "assets/creatures/velociraptor/Velociraptor.fbx"
+  },
+  {
+    "section": "creatures",
+    "title": "Animated Fish Pack",
+    "author": "Quaternius",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/animated-fish",
+    "path": "assets/creatures/animated_fish_pack/Fish1.fbx"
+  },
+  {
+    "section": "creatures",
+    "title": "Banana",
+    "author": "Teh_Bucket",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/banana-1",
+    "path": "assets/creatures/banana/banana.glb",
+    "modified": "P3D viewer container converted losslessly to standard GLB; mesh and material slots preserved"
+  },
+  {
+    "section": "creatures",
+    "title": "Barramundi Fish",
+    "author": "Public / Khronos Group",
+    "license": "CC0",
+    "page": "https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/BarramundiFish",
+    "path": "assets/creatures/aquarium/BarramundiFish.glb"
+  },
+  {
+    "section": "creatures",
+    "title": "Cat named Maggie",
+    "author": "ChamberSu1996",
+    "license": "CC-BY",
+    "page": "https://sketchfab.com/3d-models/7a078f6d97c748e3b19a042d71e2f012",
+    "path": "assets/creatures/cat/maggie-animated-v3.glb",
+    "modified": "unused static presentation duplicate removed; textures converted from required WebP to core PNG and capped at 512px for Safari/mobile GPU compatibility; skinned quadruped and authored in-place walk cycle preserved; slightly enlarged for the GIF-to-cat poof"
+  },
+  {
+    "section": "creatures",
+    "title": "Gorilla (male)",
+    "author": "Micket",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/gorilla-male",
+    "path": "assets/creatures/gorilla/gorilla-rigged.glb",
+    "modified": "original Blender geometry converted to GLB 2.0; deterministic seven-bone armature and skin weights added for hand-held, beat-synchronised drumming; sourced photographic fur texture and performance scale applied at runtime"
+  },
+  {
+    "section": "creatures",
+    "title": "Gray cat fur texture",
+    "author": "PPD",
+    "license": "CC0",
+    "page": "https://pixnio.com/textures-and-patterns/fur/gray-cat-fur-texture",
+    "path": "assets/creatures/gorilla/gorilla-fur-cc0.jpg",
+    "modified": "mapped across the skinned gorilla as albedo and subtle bump detail"
+  },
+  {
+    "section": "creatures",
+    "title": "Reptile Skin",
+    "author": "RooMan93",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/reptile-skin",
+    "path": "assets/creatures/dinosaur_skin/lizard_skin.png"
+  },
+  {
+    "section": "creatures",
+    "title": "Snail in the Water",
+    "author": "Rafael Rodrigues",
+    "license": "CC-BY",
+    "page": "https://sketchfab.com/3d-models/28f1adcb72c140e29300d1dfe9cff8fd",
+    "path": "assets/creatures/inevitable_snail/snail-v2.glb",
+    "modified": "presentation leaf, water plane, and mirrored duplicate removed; authored body, shell, and embedded PBR textures preserved at a mobile-safe 512px maximum"
+  },
+  {
+    "section": "env",
+    "title": "Aarfontein Dirt Road",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/aarfontein_dirt_road",
+    "path": "assets/env/aarfontein_dirt_road.hdr"
+  },
+  {
+    "section": "env",
+    "title": "Rogland Moonlit Night",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/rogland_moonlit_night",
+    "path": "assets/env/rogland_moonlit_night.hdr"
+  },
+  {
+    "section": "env",
+    "title": "Rogland Overcast",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/rogland_overcast",
+    "path": "assets/env/rogland_overcast.hdr"
+  },
+  {
+    "section": "env",
+    "title": "Rogland Sunset",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/rogland_sunset",
+    "path": "assets/env/rogland_sunset.hdr"
+  },
+  {
+    "section": "kit",
+    "title": "Compound wall",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_wall01/Wall_01.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Concrete block",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_concreteblock/ConcreteBlock.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Gas tank",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_gastank/GasTank.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Gatekeeper station",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_gatekeeper/GateKeeperStation.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Light pole",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_lightpole/LightPole.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Medic tent",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_medictent/MedicTent.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Parking barrier",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_barrier/BarrierParking.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Radio station",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_radiostation/RadioStation.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Sandbag stack",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_sandsack/SandsSack.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Shipping container",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_container01/Container_01.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Sniper tower",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_snipertower/SniperTower.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "kit",
+    "title": "Wooden box",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/military-base-pack",
+    "path": "assets/kit/kit_woodenbox/WoodenBox.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "photos",
+    "title": "Golden Crispy Chicken Nuggets on Slate",
+    "author": "Foodiesfeed AI",
+    "license": "CC0",
+    "page": "https://www.foodiesfeed.com/free-food-photo/golden-crispy-chicken-nuggets-on-slate",
+    "path": "assets/textures/chicken_nuggets/chicken_nuggets.webp"
+  },
+  {
+    "section": "props",
+    "title": "Ammo Box",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/ammo_box",
+    "path": "assets/models/ammo_box/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Barrel 01",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/Barrel_01",
+    "path": "assets/models/Barrel_01/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Barrel 02",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/Barrel_02",
+    "path": "assets/models/Barrel_02/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Barrel 03",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/barrel_03",
+    "path": "assets/models/barrel_03/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Covered Car",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/covered_car",
+    "path": "assets/models/covered_car/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Drumkit",
+    "author": "sandsound",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/drumkit",
+    "path": "assets/models/realistic_drum_kit/drum-kit.glb",
+    "modified": "original Blender geometry converted to GLB 2.0; preview floor removed and performance materials applied at runtime"
+  },
+  {
+    "section": "props",
+    "title": "Emergency Stop Button",
+    "author": "kemal.albayrak.official",
+    "license": "CC0",
+    "page": "https://www.meshy.ai/3d-models/Emergency-Stop-Button-019f4d00-b6bb-7d00-b04d-5992047e0d77",
+    "path": "assets/models/critical_button-v2.glb",
+    "modified": "converted from Meshy's download container to a standard self-contained GLB; required WebP textures converted to core PNG and capped at 512px for Safari/mobile GPU compatibility"
+  },
+  {
+    "section": "props",
+    "title": "Hand Truck",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/hand_truck",
+    "path": "assets/models/hand_truck/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Industrial Storage Cart",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/industrial_storage_cart",
+    "path": "assets/models/industrial_storage_cart/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Ladder Sectioned 01",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/ladder_sectioned_01",
+    "path": "assets/models/ladder_sectioned_01/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Medical Box",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/medical_box",
+    "path": "assets/models/medical_box/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Metal Jerrycan Green",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/metal_jerrycan_green",
+    "path": "assets/models/metal_jerrycan_green/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Metal Toolbox",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/metal_toolbox",
+    "path": "assets/models/metal_toolbox/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Modular Chainlink Fence",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/modular_chainlink_fence",
+    "path": "assets/models/modular_chainlink_fence/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Modular Industrial Pipes 01",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/modular_industrial_pipes_01",
+    "path": "assets/models/modular_industrial_pipes_01/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Old Military Crate",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/old_military_crate",
+    "path": "assets/models/old_military_crate/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Old Tyre",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/old_tyre",
+    "path": "assets/models/old_tyre/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Portable Generator",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/portable_generator",
+    "path": "assets/models/portable_generator/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Portable Searchlight",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/portable_searchlight",
+    "path": "assets/models/portable_searchlight/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Security Light",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/security_light",
+    "path": "assets/models/security_light/scene.gltf"
+  },
+  {
+    "section": "props",
+    "title": "Vending Machines (Low Poly Style)",
+    "author": "tiko479",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/vending-machines-low-poly-style",
+    "path": "assets/models/banana_vending_machine/Vending Machines.fbx",
+    "modified": "food-vending variant isolated, scaled for the rhythm-tower deck, and stocked with the separate CC0 banana model"
+  },
+  {
+    "section": "spacecraft",
+    "title": "Three Days Ship",
+    "author": "FacadeGaikan",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/three-days-ship",
+    "path": "assets/models/starling/Ship.fbx",
+    "modified": "scaled and fitted with landing gear and emissive engines for the game"
+  },
+  {
+    "section": "surfaces",
+    "title": "Concrete Block Wall",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/concrete_block_wall",
+    "path": "assets/textures/concrete_block_wall"
+  },
+  {
+    "section": "surfaces",
+    "title": "Dirty Concrete",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/dirty_concrete",
+    "path": "assets/textures/dirty_concrete"
+  },
+  {
+    "section": "surfaces",
+    "title": "Green Metal Rust",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/green_metal_rust",
+    "path": "assets/textures/green_metal_rust"
+  },
+  {
+    "section": "surfaces",
+    "title": "Metal Plate",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/metal_plate",
+    "path": "assets/textures/metal_plate"
+  },
+  {
+    "section": "surfaces",
+    "title": "Rust Coarse 01",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/rust_coarse_01",
+    "path": "assets/textures/rust_coarse_01"
+  },
+  {
+    "section": "surfaces",
+    "title": "Rusty Corrugated Iron",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/rusty_corrugated_iron",
+    "path": "assets/textures/rusty_corrugated_iron"
+  },
+  {
+    "section": "terrain",
+    "title": "Asphalt 02",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/asphalt_02",
+    "path": "assets/textures/asphalt_02"
+  },
+  {
+    "section": "terrain",
+    "title": "Coast Sand 01",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/coast_sand_01",
+    "path": "assets/textures/coast_sand_01"
+  },
+  {
+    "section": "terrain",
+    "title": "Cracked Red Ground",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/cracked_red_ground",
+    "path": "assets/textures/cracked_red_ground"
+  },
+  {
+    "section": "terrain",
+    "title": "Dirt Floor",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/dirt_floor",
+    "path": "assets/textures/dirt_floor"
+  },
+  {
+    "section": "terrain",
+    "title": "Dry Ground 01",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/dry_ground_01",
+    "path": "assets/textures/dry_ground_01"
+  },
+  {
+    "section": "terrain",
+    "title": "Gravel Concrete",
+    "author": "Poly Haven",
+    "license": "CC0",
+    "page": "https://polyhaven.com/a/gravel_concrete",
+    "path": "assets/textures/gravel_concrete"
+  },
+  {
+    "section": "weapons",
+    "title": "Fire axe",
+    "author": "Lucian Pavel",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/pbr-fireaxe-model-icon",
+    "path": "assets/weapons/pickaxe_fireaxe/Fireaxe.fbx"
+  },
+  {
+    "section": "weapons",
+    "title": "Flamethrower",
+    "author": "Lucian Pavel",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/flamethrower-pbrunity-cc0",
+    "path": "assets/weapons/flamethrower_lp/Flamethrower.fbx"
+  },
+  {
+    "section": "weapons",
+    "title": "Lee Enfield bolt-action rifle",
+    "author": "Lucian Pavel",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/bolt-action-rifle-lee-enfield",
+    "path": "assets/weapons/sniper_enfield/FP Hunting Rifle.fbx"
+  },
+  {
+    "section": "weapons",
+    "title": "Low-poly M4A1",
+    "author": "MallNinjaMax",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/low-poly-m4a1",
+    "path": "assets/weapons/rifle_m4a1/M4A1.fbx"
+  },
+  {
+    "section": "weapons",
+    "title": "M9 knife",
+    "author": "khairul169",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/m9-knife-pbr",
+    "path": "assets/weapons/knife_m9/m9_knife.obj"
+  },
+  {
+    "section": "weapons",
+    "title": "Machine gun",
+    "author": "Harrison1",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/machine-gun",
+    "path": "assets/weapons/minigun_harrison/MachineGun.fbx"
+  },
+  {
+    "section": "weapons",
+    "title": "MG08/15 portable machine gun",
+    "author": "aaronw",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/ww1-mg0515-portable-lp",
+    "path": "assets/weapons/minigun_mg08/German_MG08_15_port_.obj"
+  },
+  {
+    "section": "weapons",
+    "title": "Old Revolver",
+    "author": "Lucian Pavel",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/old-revolver",
+    "path": "assets/weapons/deagle_revolver/Revolver.fbx"
+  },
+  {
+    "section": "weapons",
+    "title": "Pistol 01",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/guns-pack",
+    "path": "assets/weapons/pistol_zsky/Pistol_01.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "weapons",
+    "title": "RPG-7",
+    "author": "Lucian Pavel",
+    "license": "CC0",
+    "page": "https://opengameart.org/content/low-poly-rpg7",
+    "path": "assets/weapons/bazooka_rpg7/RPG7.fbx"
+  },
+  {
+    "section": "weapons",
+    "title": "Shotgun 01",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/guns-pack",
+    "path": "assets/weapons/shotgun_zsky/Shotgun_01.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "weapons",
+    "title": "Submachine Gun 01",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/guns-pack",
+    "path": "assets/weapons/smg_zsky/SubmachineGun_01.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "weapons",
+    "title": "Submachine Gun 03",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/guns-pack",
+    "path": "assets/weapons/microsmg_zsky/SubmachineGun_03.obj",
+    "modified": "scaled and re-materialled for the game"
+  },
+  {
+    "section": "weapons",
+    "title": "Submachine Gun 03",
+    "author": "Zsky",
+    "license": "CC-BY",
+    "page": "https://opengameart.org/content/guns-pack",
+    "path": "assets/weapons/microsmg_zsky/SubmachineGun_03.fbx",
+    "modified": "scaled and re-materialled for the game"
+  }
+]

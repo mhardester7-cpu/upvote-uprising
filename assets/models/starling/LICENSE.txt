@@ -1,0 +1,9 @@
+Three Days Ship by FacadeGaikan
+https://opengameart.org/content/three-days-ship
+
+Dedicated to the public domain under CC0 1.0:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The game scales the original FBX and adds landing gear and emissive engine
+effects at runtime. The original mesh and texture images remain otherwise
+unchanged.

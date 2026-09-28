@@ -1,0 +1,144 @@
+<!doctype html>
+<!-- Runtime QA for HUMAN OBSERVATION and every shipped aquatic FBX. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UPVOTE UPRISING — reverse aquarium QA</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #061116; }
+  canvas { display: block; }
+  #status {
+    position: fixed; inset: 16px 16px auto 16px; padding: 12px 15px;
+    color: #ddfbff; background: rgba(2, 14, 18, 0.84); border: 1px solid #55dff2;
+    font: 13px/1.55 ui-monospace, SFMono-Regular, monospace; letter-spacing: 0.04em;
+  }
+  #status strong { color: #71edff; }
+  #error { color: #ff8f8f; }
+</style>
+</head>
+<body>
+<div id="status" data-loaded="false" data-species="0" data-fish="0">
+  <strong>HUMAN OBSERVATION RUNTIME QA</strong><br>Loading the realistic Barramundi and seven animated species…
+</div>
+<script type="module">
+import * as THREE from '../vendor/three.module.js';
+import {
+  ReverseAquarium,
+  loadReverseAquariumAssets,
+} from '../src/entities/reverseaquarium.js';
+import { REVERSE_AQUARIUM_ROLE } from '../src/world/complex.js';
+import { HUMAN_ENCLOSURE_MODELS, HUMAN_ENCLOSURE_PROPS } from '../src/world/buildings.js';
+import { BuildingRenderer } from '../src/render/buildings.js';
+import { mountModels } from '../src/render/models.js';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07151a);
+scene.fog = new THREE.Fog(0x07151a, 12, 30);
+const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.05, 60);
+camera.position.set(0, 1.75, 5.15);
+camera.lookAt(0, 2.15, 0);
+
+scene.add(new THREE.HemisphereLight(0xa9e8f4, 0x26302b, 0.68));
+const key = new THREE.DirectionalLight(0xffebce, 1.4);
+key.position.set(4, 8, 5); key.castShadow = true; scene.add(key);
+const rim = new THREE.DirectionalLight(0x54bfe8, 0.72);
+rim.position.set(-6, 4, -5); scene.add(rim);
+
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 12),
+  new THREE.MeshStandardMaterial({ color: 0x31393a, roughness: 0.88, metalness: 0.06 }),
+);
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+for (const z of [-6, 6]) {
+  const wall = new THREE.Mesh(
+    new THREE.BoxGeometry(12, 4.2, 0.25),
+    new THREE.MeshStandardMaterial({ color: 0x343e40, roughness: 0.76 }),
+  );
+  wall.position.set(0, 2.1, z); wall.receiveShadow = true; scene.add(wall);
+}
+
+const room = {
+  id: 4, minX: -6, maxX: 6, minZ: -6, maxZ: 6,
+  cx: 0, cz: 0, floorY: 0, outdoor: false, depth: 2,
+  role: { id: REVERSE_AQUARIUM_ROLE, name: 'HUMAN OBSERVATION' },
+};
+const habitatSpots = [
+  [-4.4, -4.25, 0], [-2.2, -4.4, 0], [0, -4.4, 0], [2.2, -4.4, 0], [4.4, -4.25, 0],
+  [-4.35, 4.25, Math.PI], [-2.2, 4.4, Math.PI], [0, 4.4, Math.PI],
+  [2.8, 4.15, Math.PI], [4.55, 4.25, Math.PI],
+  [-4.7, -2, Math.PI / 2], [-4.7, 0, Math.PI / 2], [-4.7, 2, Math.PI / 2],
+  [4.7, -1.9, -Math.PI / 2], [4.7, 1.9, -Math.PI / 2],
+];
+const habitatProps = HUMAN_ENCLOSURE_PROPS.map((def, i) => ({
+  type: 'furniture', kind: 'human_enclosure', model: def.model,
+  enclosureShape: def.shape, enclosureId: def.id, enclosureZone: def.zone,
+  x: habitatSpots[i][0], y: 0, z: habitatSpots[i][1], rot: habitatSpots[i][2],
+  sx: def.w, sy: def.h, sz: def.d,
+}));
+const world = {
+  seed: 20260828, mapId: 'complex', props: habitatProps,
+  plan: { rooms: [room], links: [], reverseAquariumRoom: room.id },
+};
+const status = document.getElementById('status');
+let aquarium = null;
+
+try {
+  const assets = await loadReverseAquariumAssets();
+  aquarium = new ReverseAquarium(room, world, assets);
+  aquarium.fish[0].progress = 0.485;
+  scene.add(aquarium.mesh);
+  const habitatRenderer = new BuildingRenderer(scene, world);
+  habitatRenderer.build();
+  const habitat = await mountModels(scene, world);
+  window.aquariumQA = aquarium;
+  window.habitatQA = habitatRenderer;
+  const loaded = aquarium.loadedSpeciesCount === 8;
+  status.dataset.loaded = String(loaded);
+  status.dataset.species = String(aquarium.loadedSpeciesCount);
+  status.dataset.fish = String(aquarium.fish.length);
+  status.dataset.habitat = String(habitat.length);
+  status.innerHTML = `<strong>HUMAN OBSERVATION RUNTIME QA — ${loaded ? 'PASS' : 'FALLBACK'}</strong><br>
+    Shipped aquatic models: ${aquarium.loadedSpeciesCount} / 8<br>
+    Active swimmers: ${aquarium.fish.length}<br>
+    Human-habitat objects: ${HUMAN_ENCLOSURE_PROPS.length}<br>
+    Loaded PBR props: ${habitat.length} / ${HUMAN_ENCLOSURE_MODELS.length}<br>
+    Photographic caustics: ${assets.causticsTexture ? 'loaded' : 'fallback'}<br>
+    Every species will stop in the mid-height chamber and study the viewer`;
+} catch (error) {
+  status.id = 'error';
+  status.textContent = `HUMAN OBSERVATION RUNTIME QA — FAILED: ${error.message}`;
+  console.error(error);
+}
+
+const observer = { pos: { x: 0, y: 0, z: 2.5 }, alive: true };
+let age = 0; let then = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - then) / 1000); then = now; age += dt;
+  camera.position.set(Math.sin(age * 0.12) * 5.15, 1.75, Math.cos(age * 0.12) * 5.15);
+  camera.lookAt(0, 2.15, 0);
+  observer.pos.x = camera.position.x;
+  observer.pos.y = 0.25;
+  observer.pos.z = camera.position.z;
+  aquarium?.update(dt, [observer]);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

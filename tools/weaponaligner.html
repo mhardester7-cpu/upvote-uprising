@@ -1,0 +1,350 @@
+<!doctype html>
+<!--
+  Weapon aligner.
+
+  A downloaded gun arrives pointing whichever way its author worked, with its
+  origin wherever they left it. weaponmodels.js squares up the barrel axis and
+  matches the built gun's length automatically, which gets it close, but two
+  things cannot be inferred from geometry: which end of the barrel axis is the
+  muzzle, and how the model is rolled about it.
+
+  So this page puts the loaded model and the box-built one it replaces in the
+  same frame, at the same scale, seen from the same angle as the viewmodel sees
+  them. Turn the dials until the two silhouettes agree, then paste the printed
+  block into ALIGN in src/render/weaponmodels.js. The printed block keeps the
+  source barrel axis and zero-valued orientation fields explicitly, because an
+  accepted asset must never fall back to bounding-box guessing later.
+
+  Deliberately not part of the game: it imports the same modules the game does,
+  so what it shows is what the player gets, but nothing in the game imports it.
+
+  Open at /tools/weaponaligner.html with the server running.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UPVOTE UPRISING — weapon aligner</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; background: #16181a; color: #e6e8e2;
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    display: flex; height: 100vh; overflow: hidden;
+  }
+  #view { flex: 1; position: relative; }
+  canvas { display: block; }
+  aside {
+    width: 320px; padding: 16px; overflow-y: auto; background: #1d2022;
+    border-left: 1px solid #2c3033; display: flex; flex-direction: column; gap: 14px;
+  }
+  h1 { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #d89a3f; }
+  select, button { font: inherit; background: #262a2d; color: inherit; border: 1px solid #3a3f43;
+    border-radius: 3px; padding: 6px 8px; width: 100%; }
+  button:hover { border-color: #d89a3f; cursor: pointer; }
+  label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
+  label span { display: flex; justify-content: space-between; color: #98a0a5; }
+  input[type=range] { width: 100%; }
+  pre {
+    background: #101213; border: 1px solid #2c3033; border-radius: 3px; padding: 10px;
+    white-space: pre-wrap; font-size: 11px; color: #cfe3c8; user-select: all;
+  }
+  .facts { font-size: 11px; color: #98a0a5; }
+  .facts b { color: #e6e8e2; font-weight: 600; }
+  .legend { font-size: 11px; }
+  .legend i { font-style: normal; }
+  .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<aside>
+  <h1>Weapon aligner</h1>
+  <select id="pick"></select>
+  <div class="legend">
+    <div><i class="swatch" style="background:#4a8fd8"></i>built (the contract)</div>
+    <div><i class="swatch" style="background:#d89a3f"></i>loaded model</div>
+    <div><i class="swatch" style="background:#e05c4a"></i>muzzle &middot; <i class="swatch" style="background:#5cd08a"></i>sight</div>
+  </div>
+  <label><span>yaw <b id="yawv">0.00</b></span>
+    <input id="yaw" type="range" min="-3.15" max="3.15" step="0.01" value="0"></label>
+  <label><span>pitch <b id="pitchv">0.00</b></span>
+    <input id="pitch" type="range" min="-3.15" max="3.15" step="0.01" value="0"></label>
+  <label><span>roll <b id="rollv">0.00</b></span>
+    <input id="roll" type="range" min="-3.15" max="3.15" step="0.01" value="0"></label>
+  <label><span>scale <b id="scalev">1.00</b></span>
+    <input id="scale" type="range" min="0.4" max="2" step="0.01" value="1"></label>
+  <button id="flip">toggle flip (barrel end)</button>
+  <button id="reset">reset dials</button>
+  <div class="facts" id="facts"></div>
+  <pre id="out">pick a weapon</pre>
+</aside>
+
+<script type="importmap">
+{ "imports": { "three": "../vendor/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from '../vendor/three.module.js';
+import { BUILDERS, VIEWMODEL_LIGHTING } from '../src/render/viewmodel.js';
+import { loadWeaponModel, weaponManifest, ALIGN, sourcePartAudit } from '../src/render/weaponmodels.js';
+import { loadModelFile } from '../src/render/loadmodel.js';
+import { studioEnvironment } from '../src/render/studioenv.js';
+
+const view = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+view.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x16181a);
+// The same environment the viewmodel gets. Without it every metal surface here
+// would render near-black and the page would be lying about what the gun looks
+// like in the player's hands.
+scene.environment = studioEnvironment(renderer);
+scene.environmentIntensity = VIEWMODEL_LIGHTING.environment;
+// The viewmodel's own lighting, so a finish reads here as it will in the game.
+scene.add(new THREE.AmbientLight(0xffffff, VIEWMODEL_LIGHTING.ambient));
+const key = new THREE.DirectionalLight(0xffffff, VIEWMODEL_LIGHTING.key); key.position.set(-0.4, 1, 0.6);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x88aaff, VIEWMODEL_LIGHTING.rim); rim.position.set(0.8, -0.2, -1);
+scene.add(rim);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 20);
+const holder = new THREE.Group();
+scene.add(holder);
+scene.add(new THREE.GridHelper(2, 20, 0x2c3033, 0x22262a));
+
+function resize() {
+  const w = view.clientWidth, h = view.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+
+// Orbit by drag, zoom by wheel. Hand-rolled because OrbitControls is not
+// vendored and this is the only page that would want it.
+let yawCam = 0.9, pitchCam = 0.35, dist = 1.6, dragging = false;
+renderer.domElement.addEventListener('pointerdown', () => { dragging = true; });
+addEventListener('pointerup', () => { dragging = false; });
+addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  yawCam -= e.movementX * 0.006;
+  pitchCam = Math.max(-1.4, Math.min(1.4, pitchCam - e.movementY * 0.006));
+});
+renderer.domElement.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  dist = Math.max(0.3, Math.min(6, dist * (1 + Math.sign(e.deltaY) * 0.1)));
+}, { passive: false });
+
+const dials = {
+  yaw: document.getElementById('yaw'), pitch: document.getElementById('pitch'),
+  roll: document.getElementById('roll'), scale: document.getElementById('scale'),
+};
+const out = document.getElementById('out');
+const facts = document.getElementById('facts');
+const pick = document.getElementById('pick');
+
+let current = null;      // { id, built, loaded, flip, initialFlip, baseRotation }
+
+/** Wireframe of the built gun: the shape the loaded one has to agree with. */
+function builtGhost(id) {
+  const g = BUILDERS[id]();
+  g.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = new THREE.MeshBasicMaterial({ color: 0x4a8fd8, wireframe: true, transparent: true, opacity: 0.45 });
+  });
+  return g;
+}
+
+function marker(colour, size = 0.02) {
+  return new THREE.Mesh(new THREE.SphereGeometry(size, 10, 8),
+    new THREE.MeshBasicMaterial({ color: colour }));
+}
+
+async function show(id) {
+  holder.clear();
+  current = null;
+  out.textContent = 'loading…';
+
+  const built = builtGhost(id);
+  holder.add(built);
+
+  const flip = !!ALIGN[id]?.flip;
+  const loaded = await loadWeaponModel(id, BUILDERS[id]());
+  if (!loaded) {
+    out.textContent = `${id}: no model installed, or it has no triangles.`;
+    facts.textContent = '';
+    return;
+  }
+  holder.add(loaded);
+  const inner = loaded.children.find((c) => c.isGroup) || loaded;
+  current = {
+    id, built, loaded, flip, initialFlip: flip,
+    // loadWeaponModel has already squared up the source's long axis. The dials
+    // are corrections on top of that basis; replacing this Euler outright
+    // turned X/Y-authored models back onto their sides while calibrating them.
+    baseRotation: inner.rotation.clone(),
+  };
+
+  // Anchors, so a wrong muzzle is visible rather than merely wrong.
+  for (const [k, colour] of [['muzzle', 0xe05c4a], ['sight', 0x5cd08a]]) {
+    const a = loaded.userData[k];
+    if (!a) continue;
+    const m = marker(colour);
+    a.add(m);
+  }
+
+  let tris = 0, textured = 0; const roles = new Set(); const materialAudit = [];
+  loaded.traverse((o) => {
+    if (!o.isMesh) return;
+    const g = o.geometry;
+    tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+    for (const mat of (Array.isArray(o.material) ? o.material : [o.material])) {
+      if (mat?.map) textured++;
+      if (mat?.userData?.baseRole) roles.add(mat.userData.baseRole);
+      materialAudit.push({
+        name: mat?.name || o.name || '(unnamed)',
+        color: mat?.color ? `#${mat.color.getHexString()}` : null,
+        emissive: mat?.emissive ? `#${mat.emissive.getHexString()}` : null,
+        emissiveIntensity: mat?.emissiveIntensity,
+        map: mat?.map?.image?.currentSrc || mat?.map?.image?.src || null,
+        normal: !!mat?.normalMap, ao: !!mat?.aoMap,
+        metalness: mat?.metalness, metalMap: !!mat?.metalnessMap,
+        roughness: mat?.roughness, roughMap: !!mat?.roughnessMap,
+        uv: !!o.geometry?.attributes?.uv,
+        uvRange: (() => {
+          const uv = o.geometry?.attributes?.uv;
+          if (!uv) return null;
+          let minU = Infinity, minV = Infinity, maxU = -Infinity, maxV = -Infinity;
+          for (let i = 0; i < uv.count; i++) {
+            minU = Math.min(minU, uv.getX(i)); maxU = Math.max(maxU, uv.getX(i));
+            minV = Math.min(minV, uv.getY(i)); maxV = Math.max(maxV, uv.getY(i));
+          }
+          return [minU, minV, maxU, maxV].map((n) => +n.toFixed(3));
+        })(),
+        image: mat?.map?.image ? [mat.map.image.naturalWidth || mat.map.image.width,
+          mat.map.image.naturalHeight || mat.map.image.height] : null,
+        flipY: mat?.map?.flipY, colorSpace: mat?.map?.colorSpace,
+      });
+    }
+  });
+  const credit = loaded.userData.credit || {};
+  facts.innerHTML = `<b>${Math.round(tris)}</b> triangles &middot; <b>${textured}</b> textured maps<br>`
+    + `source axis: <b>${loaded.userData.sourceAxis || ALIGN[id]?.axis || '?'}</b> &middot; `
+    + `sight obstruction: <b>${loaded.userData.sightBlockedSamples ?? '?'} / 9</b><br>`
+    + `roles: <b>${[...roles].join(', ') || 'none'}</b><br>`
+    + `${credit.title ?? ''} — ${credit.author ?? ''} (${credit.license ?? ''})`;
+  facts.dataset.materials = JSON.stringify(materialAudit);
+
+  apply();
+}
+
+/** Push the dials onto the loaded model, live. */
+function apply() {
+  if (!current) return;
+  const { loaded, id, flip, initialFlip, baseRotation } = current;
+  const yaw = +dials.yaw.value, pitch = +dials.pitch.value, roll = +dials.roll.value;
+  const scale = +dials.scale.value;
+  for (const k of ['yaw', 'pitch', 'roll', 'scale']) {
+    document.getElementById(k + 'v').textContent = (+dials[k].value).toFixed(2);
+  }
+  // The inner holder is what carries the fitted rotation, so the dials go there
+  // -- rotating the outer group would also rotate the fit.
+  const inner = loaded.children.find((c) => c.isGroup) || loaded;
+  inner.rotation.copy(baseRotation);
+  inner.rotation.x += pitch;
+  inner.rotation.y += yaw + (flip === initialFlip ? 0 : Math.PI);
+  inner.rotation.z += roll;
+  loaded.scale.setScalar((loaded.userData.fitScale ??= loaded.scale.x) * scale);
+
+  const parts = [
+    `axis: '${loaded.userData.sourceAxis || ALIGN[id]?.axis || 'z'}'`,
+    `flip: ${flip}`,
+  ];
+  const finalYaw = +(yaw + (ALIGN[id]?.yaw ?? 0)).toFixed(2);
+  const finalPitch = +(pitch + (ALIGN[id]?.pitch ?? 0)).toFixed(2);
+  const finalRoll = +(roll + (ALIGN[id]?.roll ?? 0)).toFixed(2);
+  parts.push(`yaw: ${finalYaw}`, `pitch: ${finalPitch}`, `roll: ${finalRoll}`);
+  if (scale !== 1) parts.push(`scale: ${+(scale * (ALIGN[id]?.scale ?? 1)).toFixed(2)}`);
+  if (ALIGN[id]?.noMuzzle) parts.push('noMuzzle: true');
+  out.textContent = `  ${id}: { ${parts.join(', ')} },`;
+}
+
+for (const d of Object.values(dials)) d.addEventListener('input', apply);
+document.getElementById('flip').addEventListener('click', () => {
+  if (!current) return;
+  current.flip = !current.flip;
+  apply();
+});
+document.getElementById('reset').addEventListener('click', () => {
+  dials.yaw.value = dials.pitch.value = dials.roll.value = 0;
+  dials.scale.value = 1;
+  apply();
+});
+
+// A direct candidate URL lets art review happen before a model is accepted into
+// the manifest. It is deliberately read-only: candidate assets can be orbited
+// and inspected, but only calibrated/credited manifest entries ship in-game.
+const candidate = new URLSearchParams(location.search).get('candidate');
+if (candidate) {
+  pick.remove();
+  const { scene: model } = await loadModelFile(new URL(candidate, location.href).href);
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const centre = box.getCenter(new THREE.Vector3());
+  const scale = 1.15 / Math.max(size.x, size.y, size.z);
+  model.scale.setScalar(scale);
+  model.position.copy(centre).multiplyScalar(-scale);
+  model.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = false;
+    for (const material of (Array.isArray(o.material) ? o.material : [o.material])) {
+      if (material?.color && !material.map) material.color.multiplyScalar(1.8);
+    }
+  });
+  holder.add(model);
+  let triangles = 0;
+  const componentAudit = [];
+  model.traverse((o) => {
+    if (!o.isMesh || !o.geometry?.attributes?.position) return;
+    triangles += (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3;
+    const componentBox = new THREE.Box3().setFromObject(o);
+    componentAudit.push({ name: o.name || '(unnamed)',
+      material: (Array.isArray(o.material) ? o.material : [o.material]).map((m) => m?.name || '(unnamed)'),
+      size: componentBox.getSize(new THREE.Vector3()).toArray().map((n) => +n.toFixed(5)),
+      center: componentBox.getCenter(new THREE.Vector3()).toArray().map((n) => +n.toFixed(5)) });
+  });
+  facts.dataset.components = JSON.stringify(componentAudit);
+  facts.dataset.sourceParts = JSON.stringify(sourcePartAudit(model));
+  facts.textContent = `${Math.round(triangles)} triangles · raw bounds ${size.toArray().map((n) => n.toFixed(2)).join(' × ')}`;
+  out.textContent = candidate;
+} else {
+const manifest = await weaponManifest();
+if (!manifest.size) {
+  out.textContent = 'No weapon models installed. Run:\n  node tools/fetch-assets.mjs';
+} else {
+  for (const id of manifest.keys()) {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = id;
+    pick.append(opt);
+  }
+  pick.addEventListener('change', () => show(pick.value));
+  await show(pick.value);
+}
+}
+
+resize();
+renderer.setAnimationLoop(() => {
+  camera.position.set(
+    Math.sin(yawCam) * Math.cos(pitchCam) * dist,
+    Math.sin(pitchCam) * dist,
+    Math.cos(yawCam) * Math.cos(pitchCam) * dist,
+  );
+  camera.lookAt(0, 0, 0);
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>

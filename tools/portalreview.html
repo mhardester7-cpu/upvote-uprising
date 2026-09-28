@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Portal & movement review</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#202925;color:#e3e7d6;font:13px ui-monospace,monospace;overflow:hidden}canvas{display:block}header{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:12px 16px;flex-wrap:wrap;background:#17211be8;z-index:2}b{color:#ffad68;letter-spacing:.12em}button{background:#354338;color:#fff;border:1px solid #75826f;padding:8px 12px;cursor:pointer}#status{margin-left:auto}footer{position:absolute;bottom:20px;left:22px;line-height:1.9;background:#18221cdd;padding:15px 22px;pointer-events:none}#cross{position:absolute;left:50%;top:50%;width:6px;height:6px;border:1px solid white;border-radius:50%;pointer-events:none}
+</style>
+<header><b>APERTURE / MOVEMENT LAB</b><button id="play">Play</button><button id="capture">Capture mouse</button><button id="reset">Reset court</button><button id="pair">Place linked pair</button><button id="trip">Test round trip</button><button id="route">Wall-run route</button><button id="routeTest">Test wall transfer</button><button id="inspect">View portal</button><button id="views">Views: on</button><button id="overlook">Overlook</button><button id="district">Next district</button><button id="floor">Next floor</button><span id="status">Loading…</span></header>
+<div id="cross"></div><footer>Play · WASD move · Shift sprint · Drag to look<br>Hold Space to bunnyhop · Release/tap Space for wall jump<br>Click / right-click or F / G: blue / orange · Arrows look · Esc pauses<br><span id="metrics"></span><br><span id="perf"></span></footer>
+<script type="importmap">{"imports":{"three":"../vendor/three.module.js"}}</script>
+<script type="module">
+import * as THREE from '../vendor/three.module.js';
+import { World } from '../src/world/world.js';
+import { Player } from '../src/entities/player.js';
+import { PortalSystem } from '../src/game/portals.js';
+import { BuildingRenderer } from '../src/render/buildings.js';
+import { ViewModel } from '../src/render/viewmodel.js';
+import { WeaponSystem } from '../src/combat/weapons.js';
+const world=new World(20260725);for(const _ of world.generate()){}
+const rooms=world.plan.rooms.filter(r=>r.parkour);let room=rooms[0],floor=0;
+for(const door of [...world.props].filter(p=>p.type==='door'))world.openDoor(door);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#b9c5ac');scene.fog=new THREE.Fog('#b9c5ac',130,480);
+scene.add(new THREE.HemisphereLight(0xe7f5de,0x68736b,2));const sun=new THREE.DirectionalLight(0xffecd1,3);sun.position.set(-15,40,20);scene.add(sun);
+new BuildingRenderer(scene,world).build();
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.autoClear=false;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.05,500);camera.rotation.order='YXZ';
+const player=new Player(world);const portals=new PortalSystem(scene,world);player.portalSystem=portals;
+const weapons=new WeaponSystem(null);weapons.index=weapons.weapons.findIndex(w=>w.def.portal);
+const vm=new ViewModel();vm.setRenderer(renderer);vm.setWeapon('portalgun');
+let liveViews=true; const samples=[]; let nextReport=0;
+const status=document.querySelector('#status');const keys=new Set();let preview=true;
+portals.onBlocked=message=>{status.textContent=message;};
+const actions={forward:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',sprint:'ShiftLeft',jump:'Space'};
+const input={actionDown:a=>keys.has(actions[a])};
+const playButton=document.querySelector('#play');
+let dragging=false,dragDistance=0,lastMouse=null;
+function pause(){preview=true;keys.clear();dragging=false;playButton.textContent='Play';if(document.pointerLockElement)document.exitPointerLock();}
+function play(){preview=false;keys.clear();playButton.textContent='Pause';renderer.domElement.focus();status.textContent='PLAYING — DRAG TO LOOK';}
+renderer.domElement.tabIndex=0;
+renderer.domElement.setAttribute('aria-label','Playable movement court');
+function reset(){pause();player.spawn(room.parkourEntry);player.yaw=0;player.pitch=.05;player.noFallDamage=true;preview=true;status.textContent=room.label;}
+function pair(){portals.clear();
+ player.spawn({x:room.cx,y:room.floorY,z:room.minZ+7});const a=portals.place('blue',player,{x:0,y:0,z:-1});
+ player.spawn(room.portalProbe);const b=portals.place('orange',player,{x:1,y:0,z:0});
+ reset();status.textContent=a.ok&&b.ok?'PAIR LINKED':`${a.reason||''} ${b.reason||''}`;
+}
+function trip(){
+ pair();let count=0;portals.onTraverse=()=>count++;
+ if(!portals.ready){status.textContent='FAIL: PAIR COULD NOT BE PLACED';return;}
+ for(const kind of ['blue','orange']){
+  const source=portals.portals[kind];
+  player.spawn({x:source.center.x+source.normal.x*2,y:source.center.y-1.2,
+    z:source.center.z+source.normal.z*2});
+  player.yaw=Math.atan2(source.normal.x,source.normal.z);player.pitch=0;
+  const before=count;
+  for(let i=0;i<120&&count===before;i++){
+   portals.update(1/60);player.update(1/60,{actionDown:a=>a==='forward'});
+  }
+  for(let i=0;i<24;i++){portals.update(1/60);player.update(1/60,{actionDown:()=>false});}
+ }
+ status.textContent=count===2?'PASS: WALKED THROUGH BOTH PORTALS':`FAIL: ${count} traversals`;
+ pause();
+}
+weapons.onFire=(_w,shots,_cone,alt)=>{const kind=alt?'orange':'blue';const result=portals.place(kind,player,shots[0]);vm.triggerFlash(alt?0xff8b24:0x28a9ff);status.textContent=result.ok?`${kind.toUpperCase()} PLACED`:result.reason;};
+function route(){pause();const lane=room.wallRunLanes.find(l=>l.x===room.cx)??room.wallRunLanes[0];if(!lane)return;player.spawn({x:lane.x-lane.gap/2+.42,y:lane.y+1,z:lane.z0+1});player.yaw=Math.PI;player.pitch=0;status.textContent=`${room.label} / ${lane.gap} M WALL TRANSFER`;return lane;}
+document.querySelector('#route').onclick=route;
+document.querySelector('#routeTest').onclick=()=>{if(!route())return;player.vel.z=7;player.update(1/60,{actionDown:a=>a==='forward'});let attached=player.wallRunning;player.update(1/60,{actionDown:a=>a==='forward'||a==='jump'});let transferred=false;for(let i=0;i<75;i++){player.update(1/60,{actionDown:a=>a==='forward'});if(player.wallRunning&&player.wallNormal.x<-.9){transferred=true;break;}}status.textContent=attached&&transferred?'PASS: JUMPED BETWEEN PARALLEL WALLS':'FAIL: WALL TRANSFER';};
+document.querySelector('#views').onclick=()=>{liveViews=!liveViews;document.querySelector('#views').textContent=`Views: ${liveViews?'on':'off'}`;samples.length=0;};
+document.querySelector('#inspect').onclick=()=>{pair();const source=portals.portals.blue;if(source){player.spawn({x:source.center.x+source.normal.x*4,y:room.floorY,z:source.center.z+source.normal.z*4});player.yaw=Math.atan2(source.normal.x,source.normal.z);player.pitch=0;}samples.length=0;};
+document.querySelector('#reset').onclick=reset;document.querySelector('#pair').onclick=pair;document.querySelector('#trip').onclick=trip;
+document.querySelector('#overlook').onclick=()=>{reset();player.pos.y+=room.parkourLevels*5+12;player.pos.z+=12;player.pitch=-.65;status.textContent=`${room.label} / OVERLOOK`;};
+document.querySelector('#district').onclick=()=>{room=rooms[(rooms.indexOf(room)+1)%rooms.length];floor=0;reset();};
+document.querySelector('#floor').onclick=()=>{pause();floor=(floor+1)%room.parkourLevels;player.spawn(room.parkourLandings[floor]);player.yaw=0;player.pitch=.1;status.textContent=`${room.label} / FLOOR ${floor+1}`;};
+playButton.onclick=()=>preview?play():pause();
+document.querySelector('#capture').onclick=async()=>{
+ play();
+ try { await renderer.domElement.requestPointerLock(); }
+ catch { status.textContent='PLAYING — DRAG TO LOOK (MOUSE CAPTURE UNAVAILABLE)'; }
+};
+document.addEventListener('pointerlockerror',()=>{
+ if(!preview)status.textContent='PLAYING — DRAG TO LOOK (MOUSE CAPTURE UNAVAILABLE)';
+});
+document.addEventListener('pointerlockchange',()=>{
+ keys.clear();dragging=false;
+ if(document.pointerLockElement===renderer.domElement){preview=false;playButton.textContent='Pause';status.textContent='PLAYING — MOUSE CAPTURED';}
+ else if(!preview)status.textContent='PLAYING — DRAG TO LOOK';
+});
+document.addEventListener('keydown',e=>{
+ if(e.code==='Escape'){pause();return;}
+ if(preview || e.target.closest?.('button'))return;
+ keys.add(e.code);e.preventDefault();
+ if(e.code==='KeyG'&&!e.repeat)weapons.fireAlternate(player);
+});
+document.addEventListener('keyup',e=>keys.delete(e.code));
+document.addEventListener('mousemove',e=>{
+ if(preview)return;
+ if(document.pointerLockElement===renderer.domElement)player.applyLook(e.movementX*.002,e.movementY*.002);
+ else if(dragging&&lastMouse){const dx=e.clientX-lastMouse.x,dy=e.clientY-lastMouse.y;
+  dragDistance+=Math.abs(dx)+Math.abs(dy);player.applyLook(dx*.004,dy*.004);
+  lastMouse={x:e.clientX,y:e.clientY};
+ }
+});
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+renderer.domElement.addEventListener('mousedown',e=>{
+ if(preview){play();return;}
+ renderer.domElement.focus();
+ if(e.button===2)weapons.fireAlternate(player);
+ else if(e.button===0){
+  if(document.pointerLockElement===renderer.domElement)keys.add('fire');
+  else {dragging=true;dragDistance=0;lastMouse={x:e.clientX,y:e.clientY};}
+ }
+});
+document.addEventListener('mouseup',e=>{
+ if(!preview&&dragging&&e.button===0&&dragDistance<5)weapons.update(0,player,true,true);
+ dragging=false;lastMouse=null;keys.delete('fire');
+});
+window.addEventListener('blur',pause);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();vm.setSize(innerWidth,innerHeight);}window.onresize=resize;resize();reset();
+let last=performance.now(),acc=0,fireWasDown=false;
+function frame(now){requestAnimationFrame(frame);const frameMs=Math.max(0,now-last);const cpuStart=performance.now();renderer.info.autoReset=false;renderer.info.reset();const dt=Math.min(.05,(now-last)/1000);last=now;acc+=dt;
+ while(acc>=1/60){portals.update(1/60);if(!preview)player.update(1/60,input);if(!preview)player.applyLook(((keys.has('ArrowRight')?1:0)-(keys.has('ArrowLeft')?1:0))*.025,((keys.has('ArrowDown')?1:0)-(keys.has('ArrowUp')?1:0))*.025);const fire=!preview&&(keys.has('fire')||keys.has('KeyF'));weapons.update(1/60,player,fire,fire&&!fireWasDown);fireWasDown=fire;acc-=1/60;}
+ vm.update(dt,player,weapons,{dx:0,dy:0});camera.position.set(player.pos.x,player.eyeY,player.pos.z);camera.rotation.set(player.pitch,player.yaw,player.wallRoll);camera.fov=78+portals.transitPulse*5;camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
+ if(liveViews)portals.renderViews(renderer,scene,camera);renderer.setRenderTarget(null);renderer.clear();renderer.render(scene,camera);renderer.clearDepth();renderer.render(vm.scene,vm.camera);
+ samples.push({frame:frameMs,cpu:performance.now()-cpuStart,tri:renderer.info.render.triangles,calls:renderer.info.render.calls});if(samples.length>180)samples.shift();if(now>nextReport){nextReport=now+1000;const avg=k=>samples.reduce((n,s)=>n+s[k],0)/samples.length;document.querySelector('#perf').textContent=`FRAME ${avg('frame').toFixed(1)} ms / CPU ${avg('cpu').toFixed(1)} ms / ${Math.round(avg('tri'))} triangles / ${Math.round(avg('calls'))} draws`; }
+ document.querySelector('#metrics').textContent=`${preview?'PAUSED':'PLAYING'} · LEVEL ${Math.max(1,Math.floor((player.pos.y-room.floorY+.1)/5)+1)} · ${Math.hypot(player.pos.x-room.parkourEntry.x,player.pos.z-room.parkourEntry.z).toFixed(2)} m traveled · ${Math.hypot(player.vel.x,player.vel.z).toFixed(1)} m/s · ${player.wallRunning?'WALL RUN':player.onGround?'GROUND':'AIR'} · ${portals.viewFailed?'VIEW FAILED':portals.ready?'LIVE PORTAL VIEWS':'UNLINKED'}`;
+}requestAnimationFrame(frame);
+</script></html>

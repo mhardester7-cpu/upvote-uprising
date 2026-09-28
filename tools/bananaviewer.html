@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UPVOTE UPRISING — Banana QA</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: #101519; color: #edf2e8;
+    font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  header { padding: 12px 16px; color: #f0c72b; letter-spacing: .16em;
+    text-transform: uppercase; border-bottom: 1px solid #2a353c; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #2a353c; }
+  section { min-width: 0; background: #151d22; }
+  h2 { margin: 0; padding: 9px 12px; font-size: 11px; font-weight: 500;
+    color: #c8d3d5; letter-spacing: .12em; text-transform: uppercase; }
+  canvas { display: block; width: 100%; aspect-ratio: 16 / 9; background: #5c8f91; }
+</style>
+</head>
+<body>
+<header>Banana silhouette QA</header>
+<main>
+  <section><h2>Craft — banana + two wings only</h2><canvas id="craft"></canvas></section>
+  <section><h2>Weapon — held banana only</h2><canvas id="gun"></canvas></section>
+</main>
+<script type="module">
+import * as THREE from '../vendor/three.module.js';
+import { makeBananaCraft, makeBananaGun, makeBananaHolder } from '../src/game/interplanetary.js';
+
+function stage(canvas, camera, model) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(720, 405, false);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.18;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x5c8f91);
+  scene.add(new THREE.HemisphereLight(0xe9ffff, 0x283038, 1.8));
+  const key = new THREE.DirectionalLight(0xfff1c9, 3.2);
+  key.position.set(-3, 5, 4); scene.add(key);
+  const rim = new THREE.DirectionalLight(0x9bd6ff, 1.5);
+  rim.position.set(4, 1, -3); scene.add(rim);
+  model.visible = true;
+  scene.add(model);
+  renderer.render(scene, camera);
+}
+
+const craftCamera = new THREE.PerspectiveCamera(42, 16 / 9, 0.01, 30);
+craftCamera.position.set(5.6, 3.1, 6.2);
+craftCamera.lookAt(0, -0.15, 0);
+const craft = makeBananaCraft(makeBananaHolder(1.34));
+craft.rotation.y = -0.16;
+stage(document.getElementById('craft'), craftCamera, craft);
+
+const gunCamera = new THREE.PerspectiveCamera(78, 16 / 9, 0.01, 10);
+const gun = makeBananaGun(makeBananaHolder(0.13));
+stage(document.getElementById('gun'), gunCamera, gun);
+window.qaReady = true;
+</script>
+</body>
+</html>

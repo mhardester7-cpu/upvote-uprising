@@ -1,0 +1,268 @@
+<!doctype html>
+<!--
+  Weapon ADS QA contact sheet.
+
+  Every ranged weapon is placed with the scale, sight anchor, eye relief,
+  camera FOV, and model-masking rule used by ViewModel at full ADS. The target
+  makes a capped scope or sideways receiver obvious. Each card also publishes
+  ray-sampled obstruction metrics in data attributes and window.weaponQa.
+
+  weaponaligner.html remains the close-up three-quarter alignment tool; this
+  page is the final aiming-camera acceptance sheet.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UPVOTE UPRISING — ADS weapon QA</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0c0f11; color: #e8ebe5;
+    font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  header { position: sticky; top: 0; z-index: 20; display: flex; gap: 18px;
+    align-items: baseline; padding: 12px 16px; background: rgba(12,15,17,.96);
+    border-bottom: 1px solid #2b3135; backdrop-filter: blur(8px); }
+  h1 { margin: 0; color: #d9a454; font-size: 13px; letter-spacing: .18em;
+    text-transform: uppercase; }
+  #summary { color: #9ba5aa; }
+  #grid { display: grid; grid-template-columns: repeat(2, minmax(360px, 1fr)); gap: 1px;
+    background: #293036; }
+  .cell { min-width: 0; background: #15191c; padding-bottom: 8px; }
+  .views { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #293036; }
+  .stage { position: relative; aspect-ratio: 16/9; overflow: hidden; background: #778a8a; }
+  .stage img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .stage::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px;
+    height: 6px; margin: -3px; border: 1px solid rgba(255,255,255,.72);
+    border-radius: 50%; box-shadow: 0 0 3px #000; pointer-events: none; }
+  .stage-label { position: absolute; left: 8px; top: 6px; z-index: 4; color: #f2e3bd;
+    font-size: 9px; letter-spacing: .14em; text-shadow: 0 1px 3px #000; }
+  .optic { position: absolute; inset: 0; pointer-events: none; }
+  .optic.scope { background: radial-gradient(circle at 50% 50%, transparent 0 34%,
+    rgba(5,7,8,.35) 34.5%, rgba(3,4,5,.96) 38%); }
+  .optic.scope::before, .optic.scope::after, .optic.thermal::before,
+  .optic.thermal::after { content: ''; position: absolute; background: rgba(22,25,26,.88); }
+  .optic.scope::before { left: 18%; right: 18%; top: calc(50% - 1px); height: 2px; }
+  .optic.scope::after { top: 18%; bottom: 18%; left: calc(50% - 1px); width: 2px; }
+  .optic.thermal { inset: 12%; border: 2px solid rgba(170,255,170,.65);
+    background: rgba(65,210,100,.08); box-shadow: inset 0 0 50px rgba(0,25,5,.2); }
+  .optic.thermal::before { left: 22%; right: 22%; top: calc(50% - 1px); height: 2px;
+    background: rgba(190,255,190,.85); }
+  .optic.thermal::after { top: 22%; bottom: 22%; left: calc(50% - 1px); width: 2px;
+    background: rgba(190,255,190,.85); }
+  .optic.bazooka { inset: 18% 24%; border: 3px solid rgba(255,216,100,.7);
+    background: rgba(90,140,135,.07); }
+  .optic.bazooka::before { content: ''; position: absolute; left: 50%; top: 50%;
+    width: 20px; height: 20px; margin: 3px 0 0 -10px;
+    border-left: 3px solid #ffd264; border-top: 3px solid #ffd264;
+    transform: rotate(45deg); }
+  .head { display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px 2px; text-transform: uppercase; letter-spacing: .12em; }
+  .name { color: #d9a454; }
+  .pass { color: #70d998; } .fail { color: #ff7064; }
+  .facts { padding: 0 10px; color: #929da3; font-size: 10px; }
+  .facts b { color: #dce2dd; font-weight: 500; }
+  .melee .stage::after { display: none; }
+  .melee .optic::before { content: 'MELEE — ADS NOT OFFERED'; position: absolute;
+    left: 12px; bottom: 10px; color: #d9a454; letter-spacing: .1em; }
+  @media (max-width: 800px) { #grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header><h1>ADS acceptance sheet</h1><div id="summary">loading real weapon models…</div></header>
+<div id="grid"></div>
+
+<script type="importmap">
+{ "imports": { "three": "../vendor/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from '../vendor/three.module.js';
+import { WEAPONS } from '../src/combat/weapons.js';
+import {
+  BUILDERS, MODEL_SCALE, REST, VIEWMODEL_LIGHTING, auditAdsClearance,
+  poseWeaponForAds, weaponAdsPose,
+} from '../src/render/viewmodel.js';
+import {
+  loadWeaponModel, PREFERRED_PROCEDURAL_WEAPONS,
+} from '../src/render/weaponmodels.js';
+import { studioEnvironment } from '../src/render/studioenv.js';
+
+const grid = document.getElementById('grid');
+const summary = document.getElementById('summary');
+const W = 480, H = 270;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+const environment = studioEnvironment(renderer);
+
+function litScene() {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x6f8586);
+  scene.environment = environment;
+  scene.environmentIntensity = VIEWMODEL_LIGHTING.environment;
+  scene.add(new THREE.AmbientLight(0xffffff, VIEWMODEL_LIGHTING.ambient));
+  const key = new THREE.DirectionalLight(0xffffff, VIEWMODEL_LIGHTING.key);
+  key.position.set(-0.4, 1, 0.6); scene.add(key);
+  const rim = new THREE.DirectionalLight(0x88aaff, VIEWMODEL_LIGHTING.rim);
+  rim.position.set(0.8, -0.2, -1); scene.add(rim);
+  return scene;
+}
+
+function calibrationTarget(scene) {
+  const target = new THREE.Group();
+  target.position.z = -5;
+  target.add(new THREE.Mesh(new THREE.PlaneGeometry(7.5, 4.2),
+    new THREE.MeshBasicMaterial({ color: 0x819694 })));
+  for (const [r, colour] of [[0.62, 0xf1eee1], [0.46, 0x27343a], [0.31, 0xe6b04b], [0.15, 0xc84235]]) {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(r * .72, r, 48),
+      new THREE.MeshBasicMaterial({ color: colour, side: THREE.DoubleSide }));
+    ring.position.z = 0.006 + r * 0.001; target.add(ring);
+  }
+  const centre = new THREE.Mesh(new THREE.CircleGeometry(0.105, 32),
+    new THREE.MeshBasicMaterial({ color: 0xf4eee0 }));
+  centre.position.z = 0.012; target.add(centre);
+  for (const [w, h] of [[2.5, 0.012], [0.012, 2.5]]) {
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ color: 0xd7e3df, transparent: true, opacity: .38 }));
+    line.position.z = 0.004; target.add(line);
+  }
+  scene.add(target);
+}
+
+function shot(scene, camera) {
+  renderer.render(scene, camera);
+  return renderer.domElement.toDataURL('image/webp', 0.9);
+}
+
+const defs = new Map(WEAPONS.map((def) => [def.id, def]));
+const records = [];
+for (const [id, build] of Object.entries(BUILDERS)) {
+  const def = defs.get(id) || { id, adsSight: 'iron', melee: true };
+  const built = build();
+  let model = PREFERRED_PROCEDURAL_WEAPONS.has(id)
+    ? null
+    : await loadWeaponModel(id, built);
+  const external = !!model;
+  model ||= built;
+  model.scale.multiplyScalar(MODEL_SCALE);
+
+  // Component inventory is part of the visual acceptance record. A clear
+  // centre ray cannot catch a detached cartridge or an optic that was silently
+  // omitted from the imported model, so publish the actual rendered mesh names
+  // and bounds for browser QA alongside the obstruction metric.
+  model.updateMatrixWorld(true);
+  const components = [];
+  model.traverse((o) => {
+    if (!o.isMesh || !o.geometry?.attributes?.position) return;
+    const bounds = new THREE.Box3().setFromObject(o);
+    const size = bounds.getSize(new THREE.Vector3());
+    const centre = bounds.getCenter(new THREE.Vector3());
+    components.push({
+      name: o.name || '(unnamed)',
+      material: (Array.isArray(o.material) ? o.material : [o.material])
+        .map((m) => m?.name || '(unnamed)'),
+      vertices: o.geometry.attributes.position.count,
+      size: size.toArray().map((n) => +n.toFixed(4)),
+      centre: centre.toArray().map((n) => +n.toFixed(4)),
+    });
+  });
+
+  const camera = new THREE.PerspectiveCamera(55, W / H, 0.01, 20);
+  camera.updateProjectionMatrix();
+  const scene = litScene();
+  calibrationTarget(scene);
+
+  let audit = null;
+  let adsImage = null;
+  if (!def.melee) {
+    model.userData.ads = weaponAdsPose(model);
+    poseWeaponForAds(model, def.adsSight || 'iron', 1);
+    audit = auditAdsClearance(model, camera, { grid: 15, radiusNdc: 0.12 });
+    scene.add(model);
+    adsImage = document.createElement('img');
+    adsImage.alt = `${def.name || id} ADS view`;
+    adsImage.src = shot(scene, camera);
+  }
+
+  // The second acceptance view is the exact in-game REST transform. This is
+  // essential for masked scopes/RPG optics: a perfectly clear overlay says
+  // nothing about whether the physical launcher is backwards or rolled while
+  // it is being carried.
+  scene.add(model);
+  camera.position.set(0, 0, 0); camera.lookAt(0, 0, -1);
+  const rest = REST[id] || REST.rifle;
+  model.visible = true;
+  model.position.set(rest.x, rest.y, rest.z);
+  model.rotation.set(rest.rx, rest.ry, 0);
+  model.updateMatrixWorld(true);
+  const hipImage = document.createElement('img');
+  hipImage.alt = `${def.name || id} held view`;
+  hipImage.src = shot(scene, camera);
+
+  const coverage = audit?.coverage ?? 0;
+  const pass = def.melee || coverage <= 0.45;
+  const cell = document.createElement('article');
+  cell.className = `cell${def.melee ? ' melee' : ''}`;
+  cell.dataset.weapon = id;
+  cell.dataset.external = String(external);
+  cell.dataset.adsSight = def.adsSight || 'none';
+  cell.dataset.coverage = coverage.toFixed(4);
+  cell.dataset.centerBlocked = String(audit?.centerBlocked ?? false);
+  cell.dataset.pass = String(pass);
+  cell.dataset.sightBlockedSamples = String(model.userData.sightBlockedSamples ?? '');
+  cell.dataset.sourceAxis = model.userData.sourceAxis || '';
+  cell.dataset.sourceFlip = String(model.userData.sourceFlip ?? '');
+  cell.dataset.components = JSON.stringify(components);
+  cell.dataset.sourceParts = JSON.stringify(model.userData.sourceParts || []);
+  cell.dataset.removedSourceParts = JSON.stringify(model.userData.removedSourceParts || []);
+  cell.dataset.realOptic = String(!!model.userData.realOptic);
+  cell.dataset.opticVariant = model.userData.realOptic?.variant || '';
+
+  const views = document.createElement('div'); views.className = 'views';
+  const hipStage = document.createElement('div'); hipStage.className = 'stage hip'; hipStage.append(hipImage);
+  const hipLabel = document.createElement('span'); hipLabel.className = 'stage-label';
+  hipLabel.textContent = 'HELD / HIP'; hipStage.append(hipLabel); views.append(hipStage);
+  if (adsImage) {
+    const adsStage = document.createElement('div'); adsStage.className = 'stage ads'; adsStage.append(adsImage);
+    const optic = document.createElement('div'); optic.className = `optic ${def.adsSight || 'iron'}`;
+    const adsLabel = document.createElement('span'); adsLabel.className = 'stage-label';
+    adsLabel.textContent = 'FULL ADS'; adsStage.append(optic, adsLabel); views.append(adsStage);
+  } else {
+    const naStage = document.createElement('div'); naStage.className = 'stage';
+    const optic = document.createElement('div'); optic.className = 'optic'; naStage.append(optic);
+    views.append(naStage);
+  }
+  const head = document.createElement('div'); head.className = 'head';
+  head.innerHTML = `<span class="name">${def.name || id}</span>`
+    + `<span class="${pass ? 'pass' : 'fail'}">${def.melee ? 'N/A' : pass ? 'CLEAR' : 'BLOCKED'}</span>`;
+  const facts = document.createElement('div'); facts.className = 'facts';
+  facts.innerHTML = `<b>${external ? 'real asset' : 'built model'}</b> · ${def.adsSight || 'no optic'}`
+    + (audit ? ` · obstruction <b>${(coverage * 100).toFixed(1)}%</b> (${audit.blockedRays}/${audit.samples} rays)` : '')
+    + (external ? ` · source axis <b>${model.userData.sourceAxis || '?'}</b>` : '')
+    + (model.userData.realOptic ? ` · <b>real ${model.userData.realOptic.variant} optic</b>` : '')
+    + (model.userData.removedSourceParts?.length
+      ? ` · detached ammo removed <b>${model.userData.removedSourceParts.length} parts / ${model.userData.removedSourceParts.reduce((sum, part) => sum + part.triangleCount, 0)} tris</b>` : '');
+  cell.append(views, head, facts); grid.append(cell);
+
+  records.push({ id, external, sight: def.adsSight || null, melee: !!def.melee,
+    coverage, centerBlocked: audit?.centerBlocked ?? false, pass,
+    sourceAxis: model.userData.sourceAxis || null,
+    sightBlockedSamples: model.userData.sightBlockedSamples ?? null,
+    realOptic: model.userData.realOptic || null,
+    removedSourceParts: model.userData.removedSourceParts || [], components });
+}
+
+const ranged = records.filter((r) => !r.melee);
+const failed = ranged.filter((r) => !r.pass);
+summary.textContent = failed.length
+  ? `${failed.length}/${ranged.length} ranged weapons blocked: ${failed.map((r) => r.id).join(', ')}`
+  : `${ranged.length}/${ranged.length} ranged weapons have an obstruction-safe ADS picture`;
+summary.dataset.ready = 'true';
+summary.dataset.failed = String(failed.length);
+window.weaponQa = records;
+window.weaponQaReady = true;
+</script>
+</body>
+</html>

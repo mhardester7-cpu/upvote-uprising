@@ -1,0 +1,250 @@
+<!doctype html>
+<!--
+  Character viewer.
+
+  Two things about a downloaded character cannot be read off the file, and both
+  are invisible in a still screenshot:
+
+  WHICH WAY IS FORWARD. syncEnemyMesh sets `rotation.y = atan2(dx, dz)`, which
+  points the model's +Z along its direction of travel -- every built zombie in
+  src/render/zombies/ is modelled facing +Z for exactly that reason. A downloaded
+  character faces whatever its author decided, and if that is -Z the whole horde
+  walks at you backwards. The green arrow here is +Z: the model should be facing
+  along it.
+
+  WHETHER IT SLIDES. A walk cycle authored for one speed, played at another,
+  reads as skating. The speed control plays the clip at the rate the sim would
+  actually move that enemy, so a mismatch is visible rather than theoretical.
+
+  Open at /tools/characterviewer.html with the server running.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UPVOTE UPRISING — character viewer</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; background: #16181a; color: #e6e8e2;
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    display: flex; height: 100vh; overflow: hidden;
+  }
+  #view { flex: 1; }
+  canvas { display: block; }
+  aside {
+    width: 300px; padding: 16px; overflow-y: auto; background: #1d2022;
+    border-left: 1px solid #2c3033; display: flex; flex-direction: column; gap: 14px;
+  }
+  h1 { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #6cc07a; }
+  select, button { font: inherit; background: #262a2d; color: inherit; border: 1px solid #3a3f43;
+    border-radius: 3px; padding: 6px 8px; width: 100%; }
+  button:hover { border-color: #6cc07a; cursor: pointer; }
+  label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
+  label span { display: flex; justify-content: space-between; color: #98a0a5; }
+  input[type=range] { width: 100%; }
+  .facts { font-size: 11px; color: #98a0a5; }
+  .facts b { color: #e6e8e2; font-weight: 600; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .row button { width: auto; flex: 1; }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<aside>
+  <h1>Character viewer</h1>
+  <select id="pick"></select>
+  <div class="row" id="clips"></div>
+  <label><span>sim speed <b id="spdv">3.1</b> m/s</span>
+    <input id="spd" type="range" min="0.5" max="9" step="0.1" value="3.1"></label>
+  <label><span>facing offset <b id="yawv">0.00</b></span>
+    <input id="yaw" type="range" min="-3.15" max="3.15" step="0.01" value="0"></label>
+  <button id="turn">walk a lap (does it face forward?)</button>
+  <div class="facts" id="facts"></div>
+</aside>
+
+<script type="importmap">
+{ "imports": { "three": "../vendor/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from '../vendor/three.module.js';
+import { ENEMY_TYPES } from '../src/entities/enemy.js';
+import { studioEnvironment } from '../src/render/studioenv.js';
+import {
+  preloadCharacters, buildCharacterMesh, playState, updateCharacter,
+  CHARACTER_ROLES, FACING, locomotionPlaybackRate, locomotionState,
+} from '../src/render/charactermodels.js';
+import { buildEnemyMesh, syncEnemyMesh } from '../src/render/enemymesh.js';
+
+const view = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+view.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x16181a);
+// The world's lighting, not an approximation of it: the same hemisphere fill,
+// the same sun, and the same environment. Without the environment every surface
+// that is not facing the sun falls to the hemisphere alone, which is how a
+// perfectly good dark texture reads as black noise here and fine in the game.
+scene.add(new THREE.HemisphereLight(0xa8d8ff, 0x7d6a44, 0.95));
+const sun = new THREE.DirectionalLight(0xfff0cf, 2.0);
+sun.position.set(3, 6, 4);
+scene.add(sun);
+scene.environment = studioEnvironment(renderer);
+scene.environmentIntensity = 1.15;
+renderer.toneMappingExposure = 1.05;
+scene.add(new THREE.GridHelper(8, 16, 0x2c3033, 0x22262a));
+
+// +Z, the direction syncEnemyMesh points a walking enemy along.
+const arrow = new THREE.ArrowHelper(
+  new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0.02, 0), 1.6, 0x6cc07a, 0.3, 0.18);
+scene.add(arrow);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 60);
+const holder = new THREE.Group();
+scene.add(holder);
+
+function resize() {
+  const w = view.clientWidth, h = view.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+
+let yawCam = 0.6, pitchCam = 0.2, dist = 5, dragging = false;
+renderer.domElement.addEventListener('pointerdown', () => { dragging = true; });
+addEventListener('pointerup', () => { dragging = false; });
+addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  yawCam -= e.movementX * 0.006;
+  pitchCam = Math.max(-0.4, Math.min(1.2, pitchCam - e.movementY * 0.006));
+});
+renderer.domElement.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  dist = Math.max(1.5, Math.min(20, dist * (1 + Math.sign(e.deltaY) * 0.1)));
+}, { passive: false });
+
+const pick = document.getElementById('pick');
+const clipRow = document.getElementById('clips');
+const facts = document.getElementById('facts');
+const spd = document.getElementById('spd');
+const yawDial = document.getElementById('yaw');
+
+let current = null, lapping = false, lapT = 0;
+
+function show(type) {
+  holder.clear();
+  const t = ENEMY_TYPES[type];
+  // Types with deliberately bespoke counterplay silhouettes use the same
+  // procedural fallback the game uses, so this viewer cannot give a false pass
+  // by testing only the optional character pack.
+  const g = buildCharacterMesh(type, t.height) || buildEnemyMesh(type);
+  if (!g) { facts.textContent = `${type}: no model available`; current = null; return; }
+  holder.add(g);
+  const procedural = !g.userData.character;
+  current = {
+    g, type, t, procedural,
+    enemy: procedural ? {
+      id: 1, type: t, group: g,
+      pos: { x: 0, y: 0, z: 0 }, vel: { x: 0, y: 0, z: 0 }, yaw: 0,
+      alive: true, walkPhase: 0, attackTimer: 0, aimTimer: 0, hitFlash: 0,
+      fuse: -1, vault: null,
+    } : null,
+  };
+  spd.value = t.speed;
+
+  const actions = procedural ? ['run'] : Object.keys(g.userData.character.actions);
+  clipRow.innerHTML = '';
+  for (const state of actions) {
+    const b = document.createElement('button');
+    b.textContent = state;
+    if (!procedural) b.addEventListener('click', () => playState(g, state, 0.15));
+    clipRow.append(b);
+  }
+  if (!procedural) playState(g, locomotionState(t.speed), 0);
+  yawDial.value = FACING[CHARACTER_ROLES[type]] ?? 0;
+  update();
+}
+
+function update() {
+  document.getElementById('spdv').textContent = (+spd.value).toFixed(1);
+  document.getElementById('yawv').textContent = (+yawDial.value).toFixed(2);
+  if (!current) return;
+  current.g.rotation.y = +yawDial.value;
+  const t = current.t;
+  const movement = locomotionState(+spd.value);
+  if (!current.procedural) playState(current.g, movement, 0.12);
+  facts.innerHTML = `<b>${current.type}</b> — ${t.height}m, ${t.speed}m/s<br>`
+    + `role: <b>${CHARACTER_ROLES[current.type] || 'bespoke model'}</b><br>`
+    + (current.procedural
+      ? 'animation: <b>distance-driven procedural sprint</b>'
+      : `animation: <b>${movement}</b> @ <b>${locomotionPlaybackRate(movement, +spd.value).toFixed(2)}x</b><br>`
+        + `clips: <b>${Object.keys(current.g.userData.character.actions).join(', ')}</b>`);
+}
+spd.addEventListener('input', update);
+yawDial.addEventListener('input', update);
+document.getElementById('turn').addEventListener('click', () => { lapping = !lapping; lapT = 0; });
+
+await preloadCharacters();
+for (const type of Object.keys(ENEMY_TYPES)) {
+  const opt = document.createElement('option');
+  opt.value = opt.textContent = type;
+  pick.append(opt);
+}
+pick.addEventListener('change', () => show(pick.value));
+show(pick.value);
+resize();
+
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(0.05, clock.getDelta());
+  if (current) {
+    const speed = +spd.value;
+    // Play locomotion at the exact speed the simulation moves this enemy, so
+    // sliding shows up here instead of in a wave.
+    if (current.procedural) {
+      current.enemy.vel.z = speed;
+      current.enemy.walkPhase += speed * dt * 3.4;
+    } else {
+      updateCharacter(current.g, dt, speed);
+    }
+    if (lapping) {
+      // Drive it round a circle the way the sim would: position on the ring,
+      // yaw from atan2(dx, dz). If the model is backwards, this is where it is
+      // obvious -- it moons the camera for half the lap.
+      const r = 2.2;
+      lapT += dt * speed / r;
+      const x = Math.sin(lapT) * r, z = Math.cos(lapT) * r;
+      const dx = Math.cos(lapT), dz = -Math.sin(lapT);
+      if (current.procedural) {
+        current.enemy.pos.x = x; current.enemy.pos.z = z;
+        current.enemy.vel.x = dx * speed; current.enemy.vel.z = dz * speed;
+        current.enemy.yaw = Math.atan2(dx, dz) + (+yawDial.value);
+      } else {
+        current.g.position.set(x, 0, z);
+        current.g.rotation.y = Math.atan2(dx, dz) + (+yawDial.value);
+      }
+    } else {
+      if (current.procedural) {
+        current.enemy.pos.x = current.enemy.pos.z = 0;
+        current.enemy.yaw = +yawDial.value;
+      } else {
+        current.g.position.set(0, 0, 0);
+      }
+    }
+    if (current.procedural) syncEnemyMesh(current.enemy, 1, dt);
+  }
+  camera.position.set(
+    Math.sin(yawCam) * Math.cos(pitchCam) * dist,
+    Math.max(0.4, Math.sin(pitchCam) * dist + 1),
+    Math.cos(yawCam) * Math.cos(pitchCam) * dist,
+  );
+  camera.lookAt(0, 0.9, 0);
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!-- App icon. Vector rather than a PNG set so there is still no asset pipeline
+     in this repo: one file covers every size a launcher asks for. The safe area
+     for a maskable icon is the middle 80%, so the mark stays well inside. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#0b0d10"/>
+  <!-- Crosshair, in the HUD's accent yellow. -->
+  <g stroke="#ffcf4d" stroke-width="22" stroke-linecap="square" fill="none">
+    <circle cx="256" cy="256" r="112"/>
+    <path d="M256 84v56M256 372v56M84 256h56M372 256h56"/>
+  </g>
+  <circle cx="256" cy="256" r="20" fill="#ffcf4d"/>
+</svg>

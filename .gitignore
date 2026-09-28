@@ -1,0 +1,24 @@
+node_modules/
+*.log
+.DS_Store
+.env
+
+# Agent worktrees -- nested checkouts, never part of the tree.
+.claude/
+
+# Scratch space the fetcher unpacks into. Never part of the tree.
+assets/.tmp/
+.env.*
+COORDINATION.md
+.video_work/
+/Day_*.mp4
+/Motion_*.mp4
+/antigravity_video_parts*/
+/day7_parts/
+/day8_edit/
+/edit_work/
+/inspect/
+/rebuild_inspect/
+/build_day*_reel*.sh
+supabase/.temp/
+/antigravity_video_parts_2026-09-04.zip

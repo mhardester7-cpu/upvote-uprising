@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UPVOTE UPRISING — LIVE</title>
+<!--
+  The live dashboard.
+
+  Served at /live by an explicit route in server.js. Self-contained on purpose:
+  it is the page you open when you want to know whether the game is up, so it
+  must not itself depend on the game's assets loading.
+
+  Everything below renders with textContent. The room list carries names typed
+  by strangers, which makes this the second screen in the project -- after the
+  in-game lobby -- where innerHTML would turn a player name into script running
+  in the owner's browser.
+-->
+<style>
+  :root {
+    --hud: #e8f0f2;
+    --accent: #ffcf4d;
+    --dim: #9aa6b2;
+    --ok: #6fe08a;
+    --coop: #4db6ff;
+    --line: rgba(255,255,255,.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0b0d10;
+    color: var(--hud);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    padding: 40px 24px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+
+  h1 { font-size: 15px; letter-spacing: .3em; font-weight: 700; }
+  h1 em { color: var(--accent); font-style: normal; }
+  .sub {
+    font-size: 11px; letter-spacing: .18em; color: var(--dim);
+    margin-top: 6px; display: flex; gap: 10px; align-items: center;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--ok);
+    box-shadow: 0 0 8px var(--ok);
+  }
+  .dot.stale { background: var(--dim); box-shadow: none; }
+
+  hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+
+  .big { display: flex; align-items: baseline; gap: 16px; }
+  .big b { font-size: 76px; line-height: .9; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .big .lab { font-size: 11px; letter-spacing: .22em; color: var(--dim); }
+  .split { font-size: 12px; letter-spacing: .1em; color: var(--dim); margin-top: 10px; }
+  .split i { font-style: normal; color: var(--hud); }
+  .split .c { color: var(--coop); }
+  .split .s { color: var(--accent); }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px; margin-top: 26px;
+  }
+  .card { border: 1px solid var(--line); padding: 14px 16px; }
+  .card .k { font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+  .card .v { font-size: 26px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  /* Deliberately not called .n: the tabular-numbers helper below is also .n,
+     and a card's caption sharing that name silently shrank every card value. */
+  .card .meta { font-size: 10px; color: var(--dim); margin-top: 4px; }
+
+  .head {
+    font-size: 10px; letter-spacing: .22em; color: var(--dim);
+    display: flex; justify-content: space-between; margin-bottom: 10px;
+  }
+  .rooms { display: flex; flex-direction: column; gap: 6px; }
+  .room {
+    display: grid; grid-template-columns: 64px 1fr auto auto;
+    gap: 12px; align-items: center;
+    border: 1px solid var(--line); padding: 10px 14px; font-size: 12px;
+  }
+  .tag { font-size: 10px; letter-spacing: .12em; font-weight: 700; }
+  .tag.coop { color: var(--coop); }
+  .tag.ffa { color: #ff8a3d; }
+  .who b { color: var(--dim); font-weight: 400; margin-left: 8px; }
+  .state { font-size: 11px; color: var(--dim); letter-spacing: .1em; }
+  .n { font-variant-numeric: tabular-nums; }
+  .empty { font-size: 11px; color: var(--dim); letter-spacing: .12em; padding: 14px 0; }
+  .note { font-size: 10px; color: var(--dim); line-height: 1.7; margin-top: 30px; }
+  /* The table only ever has a handful of rows, but a narrow phone is the most
+     likely place this gets opened, so let it scroll rather than the page. */
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>DEAD<em>FALL</em> — LIVE</h1>
+  <div class="sub"><span class="dot" id="dot"></span><span id="status">connecting…</span></div>
+
+  <hr>
+
+  <div class="big"><b id="players">—</b><span class="lab">PLAYING<br>NOW</span></div>
+  <div class="split">
+    <i class="c" id="coop">0</i> co-op &nbsp;·&nbsp; <i class="s" id="solo">0</i> solo
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="k">TOTAL PLAYS</div>
+      <div class="v" id="plays">—</div>
+      <div class="meta">survives restarts</div>
+    </div>
+    <div class="card">
+      <div class="k">PEAK</div>
+      <div class="v" id="peak">—</div>
+      <div class="meta" id="peakat">since last restart</div>
+    </div>
+    <div class="card">
+      <div class="k">ACTIVE ROOMS</div>
+      <div class="v" id="rooms">—</div>
+      <div class="meta">public and private</div>
+    </div>
+    <div class="card">
+      <div class="k">UPTIME</div>
+      <div class="v" id="uptime">—</div>
+      <div class="meta">this process</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="head"><span>PUBLIC ROOMS</span><span id="roomcount"></span></div>
+  <div class="scroll"><div class="rooms" id="roomlist"></div></div>
+
+  <div class="note">
+    Counts every player, including those in private rooms. Private room codes are
+    never listed here.<br>
+    Total plays is stored durably. Peak and uptime are held in memory, so a
+    deploy or restart resets those two values.
+  </div>
+</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const REFRESH_MS = 5000;
+
+/** Seconds to something a person can read at a glance. */
+function dur(sec) {
+  const s = Math.max(0, Math.round(sec));
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+  return Math.floor(s / 86400) + 'd ' + Math.floor((s % 86400) / 3600) + 'h';
+}
+
+function ago(ms) {
+  if (!ms) return 'not yet';
+  return dur((Date.now() - ms) / 1000) + ' ago';
+}
+
+function roomRow(r) {
+  const row = document.createElement('div');
+  row.className = 'room';
+
+  const tag = document.createElement('span');
+  const ffa = r.mode === 'ffa';
+  tag.className = 'tag ' + (ffa ? 'ffa' : 'coop');
+  tag.textContent = ffa ? 'FFA' : 'CO-OP';
+
+  const who = document.createElement('span');
+  who.className = 'who';
+  who.textContent = r.host || 'OPEN GAME';
+  const code = document.createElement('b');
+  code.textContent = r.code;
+  who.appendChild(code);
+
+  const state = document.createElement('span');
+  state.className = 'state';
+  state.textContent = r.full ? 'FULL'
+    : !r.started ? 'IN LOBBY'
+      : ffa ? 'IN PROGRESS'
+        : r.wave < 1 ? 'STARTING' : 'WAVE ' + r.wave;
+
+  const count = document.createElement('b');
+  count.className = 'n';
+  count.textContent = r.players + '/' + r.max;
+
+  row.append(tag, who, state, count);
+  return row;
+}
+
+function render(d) {
+  $('players').textContent = d.players;
+  $('coop').textContent = d.coop;
+  $('solo').textContent = d.solo;
+  $('plays').textContent = Number.isSafeInteger(d.plays)
+    ? d.plays.toLocaleString()
+    : '—';
+  $('peak').textContent = d.peak;
+  $('peakat').textContent = d.peakAt ? ago(d.peakAt) : 'nobody yet';
+  $('rooms').textContent = d.rooms;
+  $('uptime').textContent = dur(d.uptimeSec);
+
+  const list = $('roomlist');
+  list.textContent = '';
+  const rooms = d.publicRooms || [];
+  $('roomcount').textContent = rooms.length ? String(rooms.length) : '';
+
+  if (!rooms.length) {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    // The distinction matters when you are staring at this page wondering
+    // whether the server is broken: private games are playing, just not listed.
+    e.textContent = d.rooms
+      ? 'NO PUBLIC ROOMS — ' + d.rooms + ' ACTIVE ROOM(S) ARE PRIVATE'
+      : 'NO ROOMS RIGHT NOW';
+    list.appendChild(e);
+    return;
+  }
+  for (const r of rooms) list.appendChild(roomRow(r));
+}
+
+async function tick() {
+  try {
+    const res = await fetch('/api/live', { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+    render(await res.json());
+    $('dot').className = 'dot';
+    $('status').textContent = 'live · refreshing every ' + (REFRESH_MS / 1000) + 's';
+  } catch {
+    $('dot').className = 'dot stale';
+    $('status').textContent = 'cannot reach the server — retrying';
+  }
+}
+
+tick();
+setInterval(tick, REFRESH_MS);
+</script>
+</body>
+</html>
